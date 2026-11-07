@@ -2,7 +2,6 @@ package com.ticketlock;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -16,7 +15,7 @@ public class SecurityConfig {
                 .requestMatchers("/lab/**").permitAll()
                 .anyRequest().authenticated()
             )
-            .formLogin(Customizer.withDefaults());
+            .formLogin(form -> form.defaultSuccessUrl("/hello"));
 
         return http.build();
     }

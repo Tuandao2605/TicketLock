@@ -59,7 +59,7 @@ Chưa triển khai thanh toán thật, chọn ghế, giữ ghế bằng Redis, O
 | Validation | Jakarta Bean Validation |
 | Session phân tán | Spring Session + Redis, bổ sung ở giai đoạn cuối |
 | Công cụ kiểm tra | Browser DevTools, Postman hoặc curl |
-| Build | Maven |
+| Build | Gradle (Groovy DSL) |
 
 Chọn bản Spring Boot ổn định có hỗ trợ Java 21 khi khởi tạo. Để Spring Boot quản lý phiên bản các thư viện Spring đi kèm.
 
@@ -339,7 +339,7 @@ Không cần viết toàn bộ kiến trúc ngay ngày đầu. Mỗi ngày bổ 
 
 ### Bước 1 — Khởi tạo dự án
 
-Tạo Maven project dùng Java 21 với:
+Tạo Gradle project (Groovy DSL) dùng Java 21 với:
 
 - Spring Web.
 - Thymeleaf.
@@ -437,3 +437,15 @@ Tạo `docs/day-01.md`, trả lời bằng lời của mình:
 10. Redis thay đổi việc lưu session ra sao khi có nhiều instance?
 11. Vì sao kiểm tra role chưa đủ để bảo vệ booking?
 12. Có thể chứng minh các câu trả lời trên bằng request, debugger hoặc bài kiểm thử nào?
+
+## 13. Lệnh chạy với Gradle
+
+Dự án sử dụng Gradle Wrapper, không cần cài Gradle riêng. Cần JDK 21.
+
+```bash
+./gradlew test       # Chạy kiểm thử
+./gradlew bootRun    # Khởi động ứng dụng
+./gradlew bootJar    # Đóng gói executable JAR vào build/libs/
+```
+
+Trên Windows dùng `gradlew.bat`. Lần đầu wrapper tải Gradle và dependency vào `~/.gradle`. Kết quả build nằm trong `build/`.
