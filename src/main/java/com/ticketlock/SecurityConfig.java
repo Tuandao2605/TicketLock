@@ -11,11 +11,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers("/lab/**").permitAll()
-                .anyRequest().authenticated()
-            )
-            .formLogin(form -> form.defaultSuccessUrl("/hello"));
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/lab/**", "/public/**").permitAll()
+                        .anyRequest().authenticated())
+                .formLogin(form -> form.defaultSuccessUrl("/hello"));
 
         return http.build();
     }
