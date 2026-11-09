@@ -1,6 +1,9 @@
 HELP.md
 target/
 .gradle/
+.env
+node_modules/
+frontend/dist/
 !**/src/main/**/target/
 !**/src/test/**/target/
 

@@ -447,9 +447,9 @@ Tạo `docs/day-01.md`, trả lời bằng lời của mình:
 Dự án sử dụng Gradle Wrapper, không cần cài Gradle riêng. Cần JDK 21.
 
 ```bash
-./gradlew test       # Chạy kiểm thử
-./gradlew bootRun    # Khởi động ứng dụng
-./gradlew bootJar    # Đóng gói executable JAR vào build/libs/
+./backend/gradlew -p backend test       # Chạy kiểm thử
+./backend/gradlew -p backend bootRun    # Khởi động ứng dụng
+./backend/gradlew -p backend bootJar    # Đóng gói executable JAR vào build/libs/
 ```
 
 Trên Windows dùng `gradlew.bat`. Lần đầu wrapper tải Gradle và dependency vào `~/.gradle`. Kết quả build nằm trong `build/`.

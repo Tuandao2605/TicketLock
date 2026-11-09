@@ -1,0 +1,21 @@
+:root { font-family: system-ui, sans-serif; color: #172033; background: #f0f4f8; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 48px 20px; }
+main { max-width: 440px; margin: auto; padding: 32px; background: white; border-radius: 16px; box-shadow: 0 8px 32px #17203312; }
+.brand { color: #1d4ed8; font-weight: 800; letter-spacing: 2px; }
+h1 { margin-bottom: 8px; }
+p { line-height: 1.6; }
+form { display: grid; gap: 12px; margin-top: 24px; }
+input, button { font: inherit; padding: 12px; border-radius: 8px; }
+input { width: 100%; border: 1px solid #94a3b8; }
+button { background: #1d4ed8; color: white; border: 0; cursor: pointer; margin-top: 12px; }
+button:disabled { opacity: .6; cursor: wait; }
+a { color: #1d4ed8; }
+.error { color: #b91c1c; }
+.success { color: #166534; }
+.password-field { position: relative; }
+.password-field input { padding-right: 72px; }
+.password-field .toggle { position: absolute; right: 4px; top: 4px; margin: 0; padding: 8px; background: transparent; color: #1d4ed8; }
+:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+small { color: #526078; }
+@media (max-width: 480px) { body { padding: 24px 12px; } main { padding: 24px; } }
