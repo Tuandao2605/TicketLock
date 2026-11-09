@@ -1,5 +1,9 @@
 # TicketLock Mini — Thiết kế đồ án học Spring Security trong 14 ngày
 
+Phần thực hành bổ sung: [Lab kiểm thử bảo mật trên chính TicketLock](docs/security-testing-lab.md), gồm session, CSRF, phân quyền, ownership, injection và JWT; thực hiện khi từng chức năng tương ứng đã có.
+
+Đây là phạm vi học Security trong 14 ngày. Hướng phát triển engine giữ ghế, CPU cache và Saga/Outbox/Kafka được mô tả trong [thiết kế nâng cao](TICKETLOCK_ADVANCED_DESIGN.md), triển khai sau giai đoạn Mini.
+
 ## 1. Mục tiêu
 
 Xây dựng ứng dụng quản lý sự kiện và đặt vé đơn giản bằng Java + Spring Boot để thực hành:

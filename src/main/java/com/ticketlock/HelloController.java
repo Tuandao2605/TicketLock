@@ -27,4 +27,9 @@ public class HelloController {
                         .map(authority -> authority.getAuthority())
                         .toList());
     }
+
+    @GetMapping("/blocked")
+    public String blocked() {
+        return "Bạn không nên nhìn thấy nội dung này!";
+    }
 }

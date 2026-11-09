@@ -1,6 +1,10 @@
 # TicketLock Mini
 
+Lab học bảo mật: [kiểm thử các lỗ hổng trên TicketLock](docs/security-testing-lab.md).
+
 Bài thực hành Spring Security và HTTP session, dùng Java 21, Spring Boot và Gradle.
+
+Hướng phát triển: nền tảng đặt vé cạnh tranh cao, engine giữ ghế để nghiên cứu concurrency/CPU cache và quy trình thanh toán phân tán bằng Saga, Outbox, Kafka. Xem [thiết kế nâng cao](TICKETLOCK_ADVANCED_DESIGN.md). Đây là kiến trúc dự kiến, chưa phải chức năng đã triển khai.
 
 ## Chạy ứng dụng
 

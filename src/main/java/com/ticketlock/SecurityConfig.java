@@ -13,6 +13,7 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/lab/**", "/public/**").permitAll()
+                        .requestMatchers("/blocked").denyAll()
                         .anyRequest().authenticated())
                 .formLogin(form -> form.defaultSuccessUrl("/hello"));
 
