@@ -1,5 +1,19 @@
 # TicketLock Mini
 
+User ID dùng kiểu PostgreSQL `uuid`, sinh bằng Hibernate
+`@UuidGenerator(style = UuidGenerator.Style.VERSION_7)` khi persist.
+Không dùng `GenerationType.UUID` mặc định để suy ra version 7.
+
+Database cũ còn ID BIGINT cần dừng backend và chạy migration trước khi chạy bản mới:
+
+```bash
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U ticketlock_app -d ticketlock < scripts/migrate-user-id-to-uuidv7.sql
+```
+
+Migration giữ tài khoản và bảng ánh xạ `user_id_migration` (old_id → new_id),
+từ chối chạy nếu có khóa ngoại cần xử lý riêng. `ddl-auto=update` không thay
+thế migration này. Database local hiện tại đã được chuyển đổi.
+
 ## Cấu trúc thư mục
 
 ```text
@@ -82,8 +96,8 @@ React lấy CSRF token qua `GET /api/auth/csrf`, gửi token và cookie cùng
 Backend trả 201 khi thành công, cố định role CUSTOMER, hash mật khẩu BCrypt
 và lưu vào `app_users`. Không cần initializer hoặc SQL để tạo customer.
 
-Đăng nhập dùng giao diện React tại `/login`, gửi form-urlencoded tới
-`POST /api/auth/login`. Spring Security quản lý xác thực và session; đăng nhập
+Đăng nhập dùng giao diện React tại `/login`, gửi JSON `{ email, password }` tới
+`POST /api/auth/login`. Controller gọi AuthenticationManager, đổi Session ID, làm mới CSRF và lưu SecurityContext vào session; đăng nhập
 thành công trả 204, sai thông tin trả 401. React đọc `/me` để hiển thị email.
 Đăng xuất gửi POST `/api/auth/logout` với CSRF token mới; server hủy session.
 Frontend build bằng `npm run build`; `dist/` chưa được tích hợp phục vụ từ backend.
@@ -106,7 +120,7 @@ Không cần bật profile dev.
 
 Nếu email đã tồn tại, script giữ nguyên tài khoản và mật khẩu cũ.
 Việc xóa initializer không xóa các tài khoản đã tạo trong database.
-Role mới được gắn vào tài khoản, chưa có rule phân biệt ADMIN/CUSTOMER.
+Các endpoint thực hành `/api/admin/**` và `/api/customer/**` đã kiểm tra role tương ứng.
 
 ## Endpoint thực hành
 
@@ -132,3 +146,36 @@ Nếu VS Code còn báo lỗi import sau khi chuyển từ Maven, chạy
 lại rồi import dự án Gradle. Chọn JDK 21 cho dự án.
 
 Thiết kế và lộ trình học: [TICKETLOCK_MINI_DESIGN.md](TICKETLOCK_MINI_DESIGN.md).
+
+### Kiểm tra login JSON bằng Postman
+
+1. Gửi GET `/api/auth/csrf`, giữ cookie cùng host và lấy `token`, `headerName`.
+2. Gửi POST `/api/auth/login`, chọn Body → raw → JSON:
+
+```json
+{
+  "email": "email đã đăng ký",
+  "password": "mật khẩu của bạn"
+}
+```
+
+Thêm header có tên bằng `headerName`, giá trị bằng `token`; Content-Type là
+`application/json`. Thành công trả 204, sai credentials trả 401, đầu vào lỗi
+trả 400, thiếu CSRF trả 403. Gọi GET `/me` với cookie mới để kiểm tra phiên.
+Lấy lại CSRF token sau đăng nhập trước khi POST logout hoặc thao tác khác.
+Form-urlencoded không còn là hợp đồng login. Không còn trang login mặc định
+ở backend; dùng giao diện React tại `/login` trên cổng frontend.
+
+### Bài thực hành phân quyền role
+
+| Người gọi | GET /api/admin/hello | GET /api/customer/hello |
+|---|---|---|
+| Chưa đăng nhập | 401 | 401 |
+| CUSTOMER | 403 | 200 |
+| ADMIN | 200 | 403 |
+
+Các rule `hasRole` đặt trước `anyRequest`. ADMIN không tự kế thừa CUSTOMER.
+Đăng ký mới luôn tạo CUSTOMER; tài khoản ADMIN local được tạo qua script riêng.
+Khi thử bằng Postman, login JSON kèm CSRF và giữ cookie để gọi endpoint.
+Các bài test phân quyền dùng danh tính giả lập; test JSON login kiểm tra riêng
+luồng xác thực và lưu session.

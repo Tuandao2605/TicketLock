@@ -5,7 +5,12 @@ import { readJson } from './api';
 
 async function getCsrf() {
   const response = await fetch('/api/auth/csrf', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
-  if (!response.ok) throw new Error('Không lấy được CSRF token. Hãy thử lại.');
+  if (!response.ok) {
+    if (response.status >= 500) {
+      throw new Error('Backend chưa chạy hoặc đang gặp lỗi. Hãy kiểm tra Spring Boot ở cổng 8080.');
+    }
+    throw new Error(`Không lấy được CSRF token (HTTP ${response.status}). Hãy thử lại.`);
+  }
   return readJson(response);
 }
 
@@ -27,8 +32,8 @@ function Login() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', [csrf.headerName]: csrf.token },
-        body: new URLSearchParams({ username: email, password }),
+        headers: { 'Content-Type': 'application/json', [csrf.headerName]: csrf.token },
+        body: JSON.stringify({ email, password }),
       });
       if (response.status === 401) throw new Error('Email hoặc mật khẩu không chính xác.');
       if (!response.ok) throw new Error('Không thể đăng nhập. Hãy thử lại.');
