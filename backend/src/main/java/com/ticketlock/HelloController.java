@@ -32,4 +32,14 @@ public class HelloController {
     public String blocked() {
         return "Bạn không nên nhìn thấy nội dung này!";
     }
+
+    @GetMapping("/api/admin/hello")
+    public String adminHello() {
+        return "Xin chào Admin!";
+    }
+
+    @GetMapping("/api/customer/hello")
+    public String customerHello() {
+        return "Xin chào Customer!";
+    }
 }
