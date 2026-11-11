@@ -40,7 +40,7 @@ class JsonLoginTests {
                     request.setRequestedSessionIdValid(true);
                     return request;
                 })
-                .header(csrf.get("headerName").asText(), csrf.get("token").asText())
+                .header(csrf.get("headerName").asString(), csrf.get("token").asString())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(new RegisterRequest(email, "TestPassword123!"))))
                 .andExpect(status().isNoContent());
@@ -52,7 +52,7 @@ class JsonLoginTests {
         var refreshed = mvc.perform(get("/api/auth/csrf").session(session)).andReturn();
         var nextCsrf = json.readTree(refreshed.getResponse().getContentAsString());
         mvc.perform(post("/api/auth/logout").session(session)
-                .header(nextCsrf.get("headerName").asText(), nextCsrf.get("token").asText()))
+                .header(nextCsrf.get("headerName").asString(), nextCsrf.get("token").asString()))
                 .andExpect(status().isNoContent());
         assertTrue(session.isInvalid());
         mvc.perform(get("/me")).andExpect(status().isUnauthorized());
@@ -66,8 +66,8 @@ class JsonLoginTests {
         var result = mvc.perform(get("/api/auth/csrf")).andReturn();
         var token = json.readTree(result.getResponse().getContentAsString());
         var session = (MockHttpSession) result.getRequest().getSession(false);
-        String header = token.get("headerName").asText();
-        String value = token.get("token").asText();
+        String header = token.get("headerName").asString();
+        String value = token.get("token").asString();
 
         mvc.perform(post("/api/auth/login").session(session).header(header, value)
                 .contentType(MediaType.APPLICATION_JSON).content("not-json"))
