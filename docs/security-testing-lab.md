@@ -147,15 +147,16 @@ Không lưu mật khẩu, JWT hoặc Session ID thật trong báo cáo.
 
 ### C2. Refresh rotation và reuse
 
-- Refresh lần một để nhận token mới.
-- Dùng lại refresh token cũ.
-- Thử refresh sau logout và thử hai request refresh đồng thời.
+- Gọi POST `/api/token/refresh` với refresh token từ login để nhận cặp token mới.
+- Dùng lại refresh token cũ, sau đó thử token mới của cùng family.
+- Gọi POST `/api/token/logout` với refresh token hiện hành rồi thử refresh.
+- Không gửi hai request refresh đồng thời từ Postman; backend cố ý thu hồi family khi phát hiện token đã dùng bị replay.
 
 **Đúng:** token cũ không được dùng lại; reuse thu hồi family theo thiết kế. Rotation có tính nguyên tử. Client cần tránh tự tạo nhiều request refresh cạnh tranh không cần thiết.
 
 ### C3. Phân biệt logout với access token expiry
 
-- Logout rồi thử refresh và access token còn hạn.
+- Logout token family rồi thử refresh; đồng thời thử access token còn hạn trên `/api/stateless/me`.
 
 **Đúng theo bản Mini:** refresh bị từ chối, access token có thể vẫn dùng đến hết hạn. Đây là trade-off đã thiết kế, không tự coi là bug. Nếu yêu cầu thu hồi ngay, thiết kế thêm revocation thay vì chỉ thay response logout.
 

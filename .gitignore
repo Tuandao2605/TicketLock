@@ -2,6 +2,7 @@ HELP.md
 target/
 .gradle/
 .env
+backend/.jwt/
 node_modules/
 frontend/dist/
 !**/src/main/**/target/

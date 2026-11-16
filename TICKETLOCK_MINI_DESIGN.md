@@ -172,9 +172,9 @@ Các form thay đổi dữ liệu phải gửi CSRF token. Form login và logout
 
 | Method | Endpoint | Quyền | Chức năng |
 |---|---|---|---|
-| POST | `/api/auth/login` | Public | Nhận access và refresh token |
-| POST | `/api/auth/refresh` | Có refresh token hợp lệ | Đổi token |
-| POST | `/api/auth/logout` | Có refresh token | Thu hồi refresh token family |
+| POST | `/api/token/login` | Public | Nhận access và refresh token |
+| POST | `/api/token/refresh` | Public; refresh token hợp lệ trong JSON body | Đổi token |
+| POST | `/api/token/logout` | Public; refresh token trong JSON body | Thu hồi refresh token family |
 | GET | `/api/events` | Public | Xem sự kiện mở bán |
 | GET | `/api/events/{id}` | Public | Chi tiết sự kiện mở bán |
 | GET | `/api/me` | CUSTOMER | Thông tin tài khoản |
@@ -325,11 +325,11 @@ Dự kiến 3–4 giờ tập trung mỗi ngày. Mỗi buổi gồm đọc khái
 | 3 | User trong PostgreSQL, BCrypt, form login |
 | 4 | Debug authentication; hiểu AuthenticationManager, AuthenticationProvider, UserDetailsService, SecurityContext; đọc current user |
 | 5 | ADMIN/CUSTOMER và method security |
-| 6 | Timeout, logout, session lifecycle |
+| 6 | Timeout, logout, session lifecycle — thực hành tại [docs/day-06.md](docs/day-06.md) |
 | 7 | Session fixation và concurrent sessions |
 | 8 | CSRF, CORS, xử lý 401/403 |
 | 9 | Login API, phát hành và kiểm tra JWT |
-| 10 | Refresh token, rotation, logout |
+| 10 | Refresh token, rotation, logout — thực hành tại [docs/jwt-access-token-lab.md](docs/jwt-access-token-lab.md) |
 | 11 | Hoàn thiện hai mô hình bảo mật trong cùng ứng dụng |
 | 12 | Chuyển HTTP session sang Redis |
 | 13 | Booking ownership và kiểm thử bảo mật |
