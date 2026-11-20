@@ -1,25 +1,30 @@
 package com.ticketlock.security;
 
-import jakarta.servlet.http.HttpSessionEvent;
-import jakarta.servlet.http.HttpSessionListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Profile;
+import org.springframework.context.event.EventListener;
+import org.springframework.session.events.SessionCreatedEvent;
+import org.springframework.session.events.SessionDeletedEvent;
+import org.springframework.session.events.SessionExpiredEvent;
 import org.springframework.stereotype.Component;
 
-/** Logs servlet session lifecycle events for the session learning lab. */
+/** Observes Redis session events without logging credentials or session IDs. */
 @Component
-@Profile("!redis")
-public class SessionLifecycleListener implements HttpSessionListener {
+public class SessionLifecycleListener {
     private static final Logger log = LoggerFactory.getLogger(SessionLifecycleListener.class);
 
-    @Override
-    public void sessionCreated(HttpSessionEvent event) {
-        log.info("HTTP session created");
+    @EventListener
+    public void sessionCreated(SessionCreatedEvent event) {
+        log.info("Redis session created");
     }
 
-    @Override
-    public void sessionDestroyed(HttpSessionEvent event) {
-        log.info("HTTP session destroyed");
+    @EventListener
+    public void sessionDeleted(SessionDeletedEvent event) {
+        log.info("Redis session deleted");
+    }
+
+    @EventListener
+    public void sessionExpired(SessionExpiredEvent event) {
+        log.info("Redis session expired");
     }
 }

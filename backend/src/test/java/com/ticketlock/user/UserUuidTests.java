@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.session.data.redis.namespace=ticketlock:test:mockmvc")
 @Transactional
 class UserUuidTests {
     @Autowired

@@ -76,3 +76,8 @@ Hai endpoint tương ứng kiểm tra quyền từ hai loại Authentication. Kh
 - Cookie session không xác thực `/api/stateless/**`; bearer JWT không xác thực `/me`.
 - Phân biệt được 401 với 403 trong cả hai chain.
 - Giải thích được logout session và logout refresh family không thu hồi credential của mô hình còn lại.
+
+
+## Tiếp theo: ngày 12
+
+Thực hành [Spring Session + Redis](redis-session-lab.md): giữ profile `jwt` nếu cần cả hai mô hình; kiểm chứng session qua restart và hai backend thay vì triển khai lại kho session đã có.

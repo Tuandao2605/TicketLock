@@ -6,13 +6,13 @@ Giải thích được session được tạo khi nào, server duy trì session 
 
 ## Cấu hình trong TicketLock
 
-- Bình thường, session hết hạn sau **15 phút không hoạt động** (`server.servlet.session.timeout=15m`). Đây là idle timeout, không phải 15 phút cố định kể từ lúc đăng nhập.
+- Bình thường, session hết hạn sau **15 phút không hoạt động** (`spring.session.timeout=15m`). Đây là idle timeout, không phải 15 phút cố định kể từ lúc đăng nhập.
 - Khi request hợp lệ dùng lại session, thời điểm hoạt động được cập nhật; một endpoint kiểm tra liên tục có thể làm timeout không bao giờ xảy ra.
 - `POST /api/auth/logout` do Spring Security xử lý. CSRF vẫn bật; logout invalidates session và xóa cookie `JSESSIONID` cùng cookie CSRF hiện tại.
 - CSRF token được lưu trong cookie `XSRF-TOKEN` bằng `CookieCsrfTokenRepository`, không nằm trong HTTP session. Cookie này cho phép React đọc token; cookie session `JSESSIONID` vẫn là nơi browser giữ định danh phiên đăng nhập.
 - Cách lưu này tránh cấp session chỉ để giữ CSRF token, nhưng không chống DoS: request vẫn tiêu thụ kết nối, băng thông, bộ đệm và CPU. Cần rate limit, giới hạn kết nối/kích thước request và bảo vệ ở reverse proxy hoặc hạ tầng.
-- `SessionLifecycleListener` ghi hai dòng `HTTP session created` và `HTTP session destroyed`. Listener không ghi session ID hay thông tin người dùng.
-- Log `destroyed` chỉ cho biết session bị hủy. Nó không tự nói nguyên nhân là logout, timeout hay dừng ứng dụng.
+- `SessionLifecycleListener` ghi sự kiện `Redis session created`, `Redis session deleted` và `Redis session expired`. Listener không ghi session ID hay thông tin người dùng.
+- Log `deleted` phản ánh sự kiện xóa, `expired` phản ánh hết hạn; chúng không chứa session ID. Redis keyspace notification/cleanup có thể đến trễ; dùng `/me` để kiểm tra quyền truy cập thực tế.
 
 ## Bài 1 — Quan sát lúc tạo session
 
@@ -36,7 +36,7 @@ Profile `session-lab` đặt timeout một phút, không thay đổi timeout 15 
 2. Gọi `/me`; kết quả phải là `200`. Trong Postman, request GET này không cần body hay pre-request CSRF.
 3. Không gửi request tới ứng dụng ít nhất 70 giây. Nếu dùng React, tránh quay lại tab/cửa sổ trong lúc chờ: focus/visibility có thể kích hoạt `/me`. Dùng Postman riêng và đóng các tab dùng cùng phiên là cách dễ kiểm soát hơn.
 4. Gọi `/me` lại với cùng browser/session. Kết quả mong đợi là `401`; đăng nhập lại thì endpoint trở về `200`.
-5. Console có thể ghi `HTTP session destroyed` khi container dọn session hết hạn. Thời điểm cleanup không nhất thiết trùng chính xác giây thứ 60.
+5. Console có thể ghi `Redis session expired` khi Redis/Spring Session xử lý sự kiện hết hạn. Thời điểm cleanup không nhất thiết trùng chính xác giây thứ 60.
 
 Không dùng `/lab/session` trong lúc chờ: endpoint này gọi `getSession()` và có thể tạo hoặc dùng session. Cũng không polling `/me`, vì request đó gia hạn idle timeout.
 
@@ -57,7 +57,7 @@ Thí nghiệm này cho thấy timeout được tính từ lần truy cập gần
 150s GET /me → 401  → đã idle khoảng 70 giây
 ```
 
-Tomcat tự quản lý thời điểm truy cập và hết hạn; controller không có hàm
+Spring Session Redis quản lý thời điểm truy cập và hết hạn; controller không có hàm
 `giaHanSession()`. `session.getLastAccessedTime()` và `session.getMaxInactiveInterval()`
 là API quan sát, không phải logic tự gia hạn. `setMaxInactiveInterval()` thay đổi
 cấu hình thời gian idle tối đa, không cần gọi lại trong mỗi request.
@@ -83,7 +83,7 @@ chưa có session
    └─ login thành công → tạo/dùng session → server lưu SecurityContext
                                 ├─ request tiếp theo → cập nhật last-access time
                                 ├─ logout → invalidate ngay
-                                └─ idle quá timeout → container hết hạn session
+                                └─ idle quá timeout → Spring Session hết hạn session
 ```
 
 Khi session bị invalidate hoặc hết hạn, cookie có thể vẫn còn trong browser đến khi browser nhận response xóa cookie hoặc cookie tự hết hạn. Dù vậy ID cũ không còn đại diện cho một phiên xác thực hợp lệ trên server.
@@ -94,7 +94,7 @@ Khi session bị invalidate hoặc hết hạn, cookie có thể vẫn còn tron
 2. Vì sao `/api/auth/csrf` không cần tạo session với cấu hình hiện tại?
 3. Logout và xóa cookie khác nhau ở bước nào?
 4. Sau idle timeout, cookie cũ còn trong browser có đồng nghĩa session còn hợp lệ không?
-5. Vì sao log `sessionDestroyed` không đủ để kết luận session hết hạn do timeout?
+5. Vì sao thời điểm nhận log Redis expired có thể khác thời điểm phiên mất quyền truy cập?
 
 Sau bài lab, dừng backend profile `session-lab`; lần chạy bình thường vẫn dùng timeout 15 phút.
 
@@ -103,21 +103,20 @@ Sau bài lab, dừng backend profile `session-lab`; lần chạy bình thường
 
 | File | Logic hiện tại |
 |---|---|
-| [application.properties](../backend/src/main/resources/application.properties) | Timeout Tomcat mặc định `15m`, cookie JSESSIONID HttpOnly, SameSite=Lax |
-| [application-session-lab.properties](../backend/src/main/resources/application-session-lab.properties) | Ghi đè timeout Tomcat thành `1m` khi bật profile session-lab |
-| [SecurityConfig](../backend/src/main/java/com/ticketlock/SecurityConfig.java) | HttpSessionSecurityContextRepository, cookie CSRF, HTTP authorization, entry point 401 và logout |
-| [LoginController](../backend/src/main/java/com/ticketlock/auth/controller/LoginController.java) | Gọi session strategy, tạo SecurityContext và `saveContext(...)` |
-| [HelloController](../backend/src/main/java/com/ticketlock/HelloController.java) | `/me` đọc Authentication sau khi request đi qua security filters |
-| [SessionLifecycleListener](../backend/src/main/java/com/ticketlock/security/SessionLifecycleListener.java) | Chỉ log created/destroyed ở profile không có redis; không tự tạo timer hoặc hủy session |
-| [main.jsx](../frontend/src/main.jsx) | Kiểm tra `/me` khi mount/focus/visibility và thay đổi trạng thái login; khi 401 thì xóa user trên UI |
+| [application.properties](../../backend/src/main/resources/application.properties) | Timeout Redis mặc định `15m`, cookie JSESSIONID HttpOnly, SameSite=Lax |
+| [application-session-lab.properties](../../backend/src/main/resources/application-session-lab.properties) | Ghi đè timeout Redis thành `1m` khi bật profile session-lab |
+| [RedisSessionConfig](../../backend/src/main/java/com/ticketlock/security/RedisSessionConfig.java) | Indexed session registry và CookieSerializer đặt JSESSIONID, HttpOnly, SameSite=Lax |
+| [SecurityConfig](../../backend/src/main/java/com/ticketlock/SecurityConfig.java) | HttpSessionSecurityContextRepository, cookie CSRF, HTTP authorization, entry point 401 và logout |
+| [LoginController](../../backend/src/main/java/com/ticketlock/auth/controller/LoginController.java) | Gọi session strategy, tạo SecurityContext và `saveContext(...)` |
+| [HelloController](../../backend/src/main/java/com/ticketlock/HelloController.java) | `/me` đọc Authentication sau khi request đi qua security filters |
+| [SessionLifecycleListener](../../backend/src/main/java/com/ticketlock/security/SessionLifecycleListener.java) | Lắng nghe Spring Session created/deleted/expired; không tự tạo timer hoặc hủy session |
+| [main.jsx](../../frontend/src/main.jsx) | Kiểm tra `/me` khi mount/focus/visibility và thay đổi trạng thái login; khi 401 thì xóa user trên UI |
 
 `expiredSessionStrategy` trong SecurityConfig dành cho phiên bị đánh dấu hết hiệu lực
 bởi concurrent session control (login ở nơi khác). Idle timeout trong bài này do
-Tomcat xử lý; mất Authentication khiến HTTP authorization trả 401 trước controller.
+Spring Session Redis xử lý; mất Authentication khiến HTTP authorization trả 401 trước controller.
 
-Profile `redis` dùng `spring.session.timeout=15m` và Spring Session; listener servlet
-của bài này bị tắt. Bật đồng thời `redis,session-lab` không làm timeout Redis thành
-một phút vì `spring.session.timeout` đã được cấu hình riêng. Xem [Redis lab](redis-session-lab.md).
+Redis là kho session mặc định. Profile `session-lab` chỉ ghi đè `spring.session.timeout=1m`; vẫn dùng Redis và cùng namespace. Khi thử timeout ngắn, dùng phiên test mới để không nhầm với các phiên có cấu hình timeout cũ. Xem [Redis lab](redis-session-lab.md).
 
 ## CSRF token trong khi sử dụng web
 

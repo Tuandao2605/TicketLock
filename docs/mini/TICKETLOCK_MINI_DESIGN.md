@@ -1,8 +1,8 @@
 # TicketLock Mini — Thiết kế đồ án học Spring Security trong 14 ngày
 
-Phần thực hành bổ sung: [Lab kiểm thử bảo mật trên chính TicketLock](docs/security-testing-lab.md), gồm session, CSRF, phân quyền, ownership, injection và JWT; thực hiện khi từng chức năng tương ứng đã có.
+Phần thực hành bổ sung: [Lab kiểm thử bảo mật trên chính TicketLock](security-testing-lab.md), gồm session, CSRF, phân quyền, ownership, injection và JWT; thực hiện khi từng chức năng tương ứng đã có.
 
-Đây là phạm vi học Security trong 14 ngày. Hướng phát triển engine giữ ghế, CPU cache và Saga/Outbox/Kafka được mô tả trong [thiết kế nâng cao](TICKETLOCK_ADVANCED_DESIGN.md), triển khai sau giai đoạn Mini.
+Đây là phạm vi học Security trong 14 ngày. Hướng phát triển engine giữ ghế, CPU cache và Saga/Outbox/Kafka được mô tả trong [thiết kế nâng cao](../../TICKETLOCK_ADVANCED_DESIGN.md), triển khai sau giai đoạn Mini.
 
 ## 1. Mục tiêu
 
@@ -63,7 +63,7 @@ Chưa triển khai thanh toán thật, chọn ghế, giữ ghế bằng Redis, O
 | Database | PostgreSQL |
 | UI hiện tại | React + Vite; Thymeleaf còn là dependency nhưng không phục vụ form login |
 | Validation | Jakarta Bean Validation |
-| Session phân tán | Spring Session + Redis đã có, bật profile `redis` |
+| Session phân tán | Spring Session + Redis bắt buộc, mặc định trong mọi profile |
 | Công cụ kiểm tra | Browser DevTools, Postman hoặc curl |
 | Build | Gradle (Groovy DSL) |
 
@@ -83,10 +83,10 @@ Customer/Postman ── Bearer JWT ──┘
                     ▼                       ▼
                 PostgreSQL                Redis
             User, Event, Booking      HTTP session
-                                     (giai đoạn sau)
+                                     (mặc định)
 ```
 
-Ban đầu HTTP session lưu trong bộ nhớ ứng dụng. Khi đã hiểu cơ chế, chuyển sang Redis để quan sát sự khác biệt.
+HTTP session luôn lưu Redis; không còn cấu hình session trong RAM. Tomcat vẫn là servlet container.
 
 ## 4. Mô hình dữ liệu
 
@@ -254,7 +254,7 @@ Cấu hình học tập:
 - Khi login mới thành công, phiên cũ mất quyền truy cập ở request tiếp theo.
 - Cookie session có `HttpOnly`; bật `Secure` khi dùng HTTPS và cấu hình `SameSite` phù hợp.
 - Quan sát tên cookie thực tế: servlet session thường dùng `JSESSIONID`, Spring Session có thể dùng tên khác.
-- Khi chuyển sang Redis, cấu hình registry dùng chung như `SpringSessionBackedSessionRegistry` cho concurrent session control.
+- Registry hiện luôn là `SpringSessionBackedSessionRegistry`, dùng cùng Redis repository với session.
 
 ### Luồng đăng nhập customer
 
@@ -345,13 +345,13 @@ Dự kiến 3–4 giờ tập trung mỗi ngày. Mỗi buổi gồm đọc khái
 | 3 | User trong PostgreSQL, BCrypt, JSON session login và đăng ký CUSTOMER |
 | 4 | Debug authentication; hiểu AuthenticationManager, AuthenticationProvider, UserDetailsService, SecurityContext; đọc current user |
 | 5 | ADMIN/CUSTOMER và method security |
-| 6 | Timeout, logout, session lifecycle — thực hành tại [docs/day-06.md](docs/day-06.md) |
+| 6 | Timeout, logout, session lifecycle — thực hành tại [day-06.md](day-06.md) |
 | 7 | Session fixation và concurrent sessions |
 | 8 | CSRF, CORS, xử lý 401/403 |
 | 9 | Login API, phát hành và kiểm tra JWT |
-| 10 | Refresh token, rotation, logout — thực hành tại [docs/jwt-access-token-lab.md](docs/jwt-access-token-lab.md) |
-| 11 | Hoàn thiện hai mô hình bảo mật trong cùng ứng dụng — thực hành tại [docs/day-11.md](docs/day-11.md) |
-| 12 | Chuyển HTTP session sang Redis |
+| 10 | Refresh token, rotation, logout — thực hành tại [jwt-access-token-lab.md](jwt-access-token-lab.md) |
+| 11 | Hoàn thiện hai mô hình bảo mật trong cùng ứng dụng — thực hành tại [day-11.md](day-11.md) |
+| 12 | Redis session đã có; kiểm chứng restart, chia sẻ phiên và logout xuyên instance tại [Redis lab](redis-session-lab.md) |
 | 13 | Ownership hồ sơ đã có; booking ownership chờ triển khai nghiệp vụ |
 | 14 | Demo, sửa lỗi, viết README giải thích thiết kế |
 
@@ -410,7 +410,7 @@ Trong DevTools, kiểm tra request header `Cookie`, response header `Set-Cookie`
 
 ### Bước 5 — Viết ghi chú
 
-Tạo `docs/day-01.md`, trả lời bằng lời của mình:
+Tạo `docs/mini/day-01.md`, trả lời bằng lời của mình:
 
 - HTTP stateless nghĩa là gì?
 - Cookie lưu ở đâu, session lưu ở đâu?
@@ -428,7 +428,7 @@ Tạo `docs/day-01.md`, trả lời bằng lời của mình:
 - [ ] Thực hiện đủ bốn thí nghiệm.
 - [ ] Phân biệt được cookie và dữ liệu session.
 - [ ] Giải thích được luồng `request → cookie → tìm session → đọc dữ liệu`.
-- [ ] Có ghi chú `docs/day-01.md`.
+- [ ] Có ghi chú `docs/mini/day-01.md`.
 
 ## 11. Tiêu chí hoàn thành đồ án
 

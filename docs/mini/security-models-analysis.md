@@ -229,11 +229,11 @@ Tài liệu này so sánh **Cookie Session**, **JWT Web Storage**, **JWT in-memo
 
 ## PHẦN 3: ÁP DỤNG VÀO TICKETLOCK
 
-React hiện dùng **session + CSRF**; profile Redis chia sẻ session giữa nhiều instance. Bài JWT phát access token ngắn hạn để so sánh API stateless. Hai luồng độc lập: giới hạn một session không giới hạn số JWT đã phát, và logout session không thu hồi JWT.
+React hiện dùng **session + CSRF**; Redis luôn lưu session và chia sẻ giữa nhiều instance. Bài JWT phát access token ngắn hạn để so sánh API stateless. Hai luồng độc lập: giới hạn một session không giới hạn số JWT đã phát, và logout session không thu hồi JWT.
 
 ### Bài thực hành: refresh token rotation
 
-TicketLock đã triển khai refresh credential ngẫu nhiên trong `RefreshTokenService`: lưu hash SHA-256, rotate sau mỗi lần dùng và thu hồi theo token family khi phát hiện token cũ bị dùng lại. Hợp đồng hiện dùng JSON body theo phạm vi Mini; xem quy trình Postman trong `docs/jwt-access-token-lab.md`.
+TicketLock đã triển khai refresh credential ngẫu nhiên trong `RefreshTokenService`: lưu hash SHA-256, rotate sau mỗi lần dùng và thu hồi theo token family khi phát hiện token cũ bị dùng lại. Hợp đồng hiện dùng JSON body theo phạm vi Mini; xem quy trình Postman trong `docs/mini/jwt-access-token-lab.md`.
 
 Các điểm cần tự kiểm chứng:
 

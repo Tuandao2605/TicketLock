@@ -1,14 +1,14 @@
 # TicketLock Mini
 
-Bài JWT access token, refresh rotation và logout: xem `docs/jwt-access-token-lab.md`.
+Bài JWT access token, refresh rotation và logout: xem `docs/mini/jwt-access-token-lab.md`.
 Tạo khóa bằng `bash scripts/generate-jwt-keys.sh`, rồi chạy backend với profile
-`jwt`. Có thể kết hợp `redis,jwt`; React hiện tiếp tục dùng session login.
-Đối chiếu session và JWT trên cùng ứng dụng theo `docs/day-11.md`.
+`jwt`. Redis session luôn bật; React hiện tiếp tục dùng session login.
+Đối chiếu session và JWT trên cùng ứng dụng theo `docs/mini/day-11.md`.
 
-Bài Spring Session Redis: xem `docs/redis-session-lab.md`.
-Chạy `docker compose --profile redis up -d --wait`, sau đó bật backend bằng
-`./backend/gradlew -p backend bootRun --args='--spring.profiles.active=redis'`.
-Không bật profile thì session tiếp tục nằm trong Tomcat như các bài trước.
+Bài Spring Session Redis: xem `docs/mini/redis-session-lab.md`.
+Chạy `docker compose up -d --wait`, sau đó bật backend bằng
+`./backend/gradlew -p backend bootRun`.
+Redis là kho HTTP session duy nhất trong mọi profile. Backend cần Redis và PostgreSQL; không có fallback session trong RAM.
 
 User ID dùng kiểu PostgreSQL `uuid`, sinh bằng Hibernate
 `@UuidGenerator(style = UuidGenerator.Style.VERSION_7)` khi persist.
@@ -29,24 +29,27 @@ thế migration này. Kiểm tra kiểu cột `app_users.id` trên database củ
 ```text
 backend/       # Spring Boot: src, build.gradle, Gradle Wrapper
 frontend/      # React + Vite
-docs/          # Ghi chép và bài thực hành
+docs/mini/     # Thiết kế Mini, ghi chép và bài thực hành Security
+docs/advanced/ # Sprint và backlog phát triển Advanced
 scripts/       # SQL chạy thủ công
-compose.yaml   # PostgreSQL local; Redis tùy chọn qua profile redis
+compose.yaml   # PostgreSQL local; Redis tùy chọn qua cấu hình Redis mặc định
 .env           # Cấu hình local, Git bỏ qua
 ```
 
 Các lệnh bên dưới chạy từ thư mục gốc repository. Backend đọc `.env` ở
 thư mục gốc; khi Debug trong VS Code, chọn `Debug TicketLock Backend`.
 
-Lab học bảo mật: [kiểm thử các lỗ hổng trên TicketLock](docs/security-testing-lab.md).
+Lab học bảo mật: [kiểm thử các lỗ hổng trên TicketLock](docs/mini/security-testing-lab.md).
 
 Bài thực hành Spring Security và HTTP session, dùng Java 21, Spring Boot và Gradle.
 
 Hoàn thiện ngày 6 về idle timeout, logout và vòng đời HTTP session: xem
-`docs/day-06.md`. Profile `session-lab` rút ngắn timeout còn một phút để thử nhanh;
+`docs/mini/day-06.md`. Profile `session-lab` rút ngắn timeout còn một phút để thử nhanh;
 cấu hình mặc định vẫn là 15 phút.
 
 Hướng phát triển: nền tảng đặt vé cạnh tranh cao, engine giữ ghế để nghiên cứu concurrency/CPU cache và quy trình thanh toán phân tán bằng Saga, Outbox, Kafka. Xem [thiết kế nâng cao](TICKETLOCK_ADVANCED_DESIGN.md). Đây là kiến trúc dự kiến, chưa phải chức năng đã triển khai.
+Sprint và ticket triển khai Advanced: [backlog](docs/advanced/SPRINT_BACKLOG.md).
+
 
 ## Chạy ứng dụng
 
@@ -158,7 +161,7 @@ Nếu VS Code còn báo lỗi import sau khi chuyển từ Maven, chạy
 **Java: Clean Java Language Server Workspace** từ Command Palette, cho phép khởi động
 lại rồi import dự án Gradle. Chọn JDK 21 cho dự án.
 
-Thiết kế và lộ trình học: [TICKETLOCK_MINI_DESIGN.md](TICKETLOCK_MINI_DESIGN.md).
+Thiết kế và lộ trình học: [TICKETLOCK_MINI_DESIGN.md](docs/mini/TICKETLOCK_MINI_DESIGN.md).
 
 ### Kiểm tra login JSON bằng Postman
 
@@ -176,7 +179,7 @@ Thêm header `X-XSRF-TOKEN` với giá trị bằng cookie `XSRF-TOKEN`; Content
 `application/json`. Thành công trả 204, sai credentials trả 401, đầu vào lỗi
 trả 400, thiếu CSRF trả 403. Gọi GET `/me` với cookie mới để kiểm tra phiên.
 Đăng nhập và logout xóa CSRF cookie cũ; gọi GET `/api/auth/csrf` để nhận cookie mới trước thao tác POST tiếp theo.
-Xem [ngày 6](docs/day-06.md) để lấy pre-request script cho login/logout và kiểm tra idle timeout.
+Xem [ngày 6](docs/mini/day-06.md) để lấy pre-request script cho login/logout và kiểm tra idle timeout.
 Form-urlencoded không còn là hợp đồng login. Không còn trang login mặc định
 ở backend; dùng giao diện React tại `/login` trên cổng frontend.
 

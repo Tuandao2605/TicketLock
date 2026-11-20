@@ -1,6 +1,6 @@
 # Ngày 01 — HTTP, Cookie và Session
 
-Ghi chú từ bài thực hành TicketLock Mini. Ở cấu hình mặc định, ứng dụng dùng HTTP session trong Tomcat. Profile `redis` chuyển session sang Redis; React vẫn dùng session login trong cả hai chế độ.
+Ghi chú HTTP/cookie/session áp dụng cho bản hiện tại: Spring Session lưu phiên trong Redis ở mọi profile. Tomcat vẫn phục vụ HTTP nhưng không phải kho phiên đăng nhập.
 
 ## 1. HTTP stateless nghĩa là gì?
 
@@ -13,7 +13,7 @@ Stateless không có nghĩa server không thể lưu dữ liệu; nó mô tả v
 ## 2. Cookie lưu ở đâu, session lưu ở đâu?
 
 - **Cookie:** được browser lưu và quản lý phía client. Trong Firefox có thể xem tại DevTools → Storage → Cookies.
-- **Session:** được quản lý phía server. Trong dự án hiện tại, Tomcat lưu dữ liệu HTTP session trong bộ nhớ ứng dụng.
+- **Session:** được quản lý phía server. Trong dự án hiện tại, Spring Session lưu dữ liệu HTTP session trong Redis.
 
 Cookie `JSESSIONID` chỉ chứa mã định danh phiên. Dữ liệu như `visitCount` và SecurityContext của người đã đăng nhập nằm phía server.
 
@@ -24,7 +24,7 @@ Cookie: JSESSIONID=example-id  ──────→ Session example-id
                                       └── SecurityContext (nếu đã đăng nhập)
 ```
 
-Profile `redis` hiện đã dùng Spring Session để chuyển nơi lưu session sang Redis. Session không bắt buộc luôn nằm trong RAM của một instance.
+Spring Session và registry cùng dùng Redis; không còn chế độ session trong RAM của từng backend.
 
 ## 3. Browser gửi Session ID cho server bằng cách nào?
 

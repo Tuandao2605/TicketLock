@@ -12,8 +12,8 @@ Hai SecurityFilterChain:
 | Các đường dẫn còn lại | 2 | HTTP session như trước | Bật |
 
 Spring chọn chain khớp đầu tiên. Chain JWT không lưu Authentication vào HTTP
-session; endpoint `/me` cũ vẫn dùng session. Khi có profile Redis, filter lưu
-session Redis có thể bọc request, nhưng các endpoint JWT không chủ động tạo
+session; endpoint `/me` cũ vẫn dùng session. Filter lưu
+session Redis luôn có thể bọc request, nhưng các endpoint JWT không chủ động tạo
 session hay dựa vào session để xác thực.
 
 ## Khởi động

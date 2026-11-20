@@ -1,5 +1,7 @@
 # TicketLock — Nền tảng đặt vé cạnh tranh cao và xử lý thanh toán phân tán
 
+Kế hoạch triển khai: [Sprint và ticket Advanced](docs/advanced/SPRINT_BACKLOG.md) — 12 sprint, 48 ticket chính và backlog mở rộng, có phụ thuộc và tiêu chí nghiệm thu.
+
 ## 1. Mô tả dự án
 
 TicketLock là hệ thống bán vé sự kiện có sơ đồ ghế, phục vụ tình huống nhiều khách đồng thời tranh mua một tập ghế giới hạn trong giờ mở bán. Khách đăng nhập, chọn ghế, giữ chỗ có thời hạn, thanh toán và nhận vé. Ban tổ chức quản lý sự kiện; nhân viên thực hiện check-in theo sự kiện được phân công.
@@ -14,7 +16,7 @@ Mục tiêu là chứng minh tính đúng đắn trước, rồi đo hiệu năn
 
 ## 2. Quan hệ với phiên bản Mini
 
-Phiên bản hiện tại vẫn là bài học Security trong 14 ngày theo [thiết kế Mini](TICKETLOCK_MINI_DESIGN.md). Tài liệu này là hướng phát triển sau đó, chưa mô tả chức năng đã triển khai.
+Phiên bản hiện tại vẫn là bài học Security trong 14 ngày theo [thiết kế Mini](docs/mini/TICKETLOCK_MINI_DESIGN.md). Tài liệu này là hướng phát triển sau đó, chưa mô tả chức năng đã triển khai.
 
 | Giai đoạn | Đầu ra |
 |---|---|

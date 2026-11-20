@@ -76,7 +76,7 @@ class RedisSessionTests {
     }
 
     private ConfigurableApplicationContext start(String namespace) {
-        return new SpringApplicationBuilder(TicketlockApplication.class).profiles("redis").run(
+        return new SpringApplicationBuilder(TicketlockApplication.class).run(
                 "--server.port=0", "--spring.session.data.redis.namespace=" + namespace,
                 "--spring.main.banner-mode=off", "--logging.level.root=WARN");
     }

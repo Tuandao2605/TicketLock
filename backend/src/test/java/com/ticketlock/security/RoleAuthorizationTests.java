@@ -10,7 +10,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.session.data.redis.namespace=ticketlock:test:mockmvc")
 @AutoConfigureMockMvc
 class RoleAuthorizationTests {
     @Autowired

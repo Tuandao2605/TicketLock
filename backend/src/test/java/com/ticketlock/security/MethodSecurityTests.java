@@ -13,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.session.data.redis.namespace=ticketlock:test:mockmvc")
 @AutoConfigureMockMvc
 class MethodSecurityTests {
     @Autowired MockMvc mvc;

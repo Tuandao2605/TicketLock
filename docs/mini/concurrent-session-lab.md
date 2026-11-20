@@ -38,15 +38,11 @@ LoginController gọi CompositeSessionAuthenticationStrategy theo thứ tự:
 Chỉ cấu hình maximumSessions ở HTTP là chưa đủ cho controller login thủ công;
 controller phải gọi chiến lược kiểm soát phiên và đăng ký phiên như trên.
 
-HttpSessionEventPublisher thông báo khi session bị hủy/hết hạn để registry dọn
-record. Ở cấu hình mặc định, `SessionRegistryImpl` ở bộ nhớ một JVM. Profile `redis` đã
-dùng `SpringSessionBackedSessionRegistry` qua `RedisSessionConfig` để tìm phiên
-xuyên instance. Kiểm tra giới hạn rồi đăng ký phiên vẫn chưa phải giao dịch nguyên tử
-chống mọi cuộc đua login đồng thời; xem [Redis lab](redis-session-lab.md).
+`RedisSessionConfig` luôn cung cấp `SpringSessionBackedSessionRegistry` từ cùng indexed Redis repository với HTTP session. Không còn SessionRegistryImpl hoặc HttpSessionEventPublisher trong cấu hình ứng dụng. Kiểm tra giới hạn rồi đăng ký phiên chưa phải giao dịch nguyên tử chống mọi cuộc đua login đồng thời; xem [Redis lab](redis-session-lab.md).
 
 ## Thử timeout
 
-Bật profile `session-lab` để dùng `server.servlet.session.timeout=1m`, rồi login:
+Bật profile `session-lab` để dùng `spring.session.timeout=1m`, rồi login:
 
 ```bash
 ./backend/gradlew -p backend bootRun --args='--spring.profiles.active=session-lab'
@@ -54,8 +50,8 @@ Bật profile `session-lab` để dùng `server.servlet.session.timeout=1m`, r�
 
 Không gửi request từ phiên đó trong hơn một phút, sau đó gọi endpoint protected.
 Kết quả mong đợi là 401. Dừng profile `session-lab` sau khi thử; mặc định vẫn là 15 phút.
-Nếu dùng Redis, timeout lấy từ `spring.session.timeout`; không dùng bài này để suy ra timeout Redis.
-Đây là kiểm tra thực tế trên Tomcat; MockMvc không tự chạy bộ đếm timeout.
+Mọi phiên đều lưu Redis; profile lab vẫn dùng Redis.
+Dùng request thực để quan sát thời hạn phiên; MockMvc không mô phỏng thời gian chờ chỉ bằng cách gọi method controller.
 
 Cookie `JSESSIONID` có HttpOnly và SameSite=Lax. Cookie `XSRF-TOKEN` cho phép JavaScript đọc, dùng cho header CSRF; nó không phải cookie xác thực. Khi triển khai HTTPS cần bật Secure;
 không bật Secure trên HTTP localhost rồi kết luận cookie bị lỗi.

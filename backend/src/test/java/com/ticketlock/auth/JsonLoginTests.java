@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
@@ -17,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.session.data.redis.namespace=ticketlock:test:mockmvc")
 @AutoConfigureMockMvc
 @Transactional
 class JsonLoginTests {
@@ -35,32 +34,30 @@ class JsonLoginTests {
         assertNotNull(csrfCookie);
         assertNull(csrfResult.getRequest().getSession(false), "CSRF token should not create an HTTP session");
         var sessionResult = mvc.perform(get("/lab/session")).andReturn();
-        var session = (MockHttpSession) sessionResult.getRequest().getSession(false);
-        String oldId = session.getId();
+        var sessionCookie = sessionResult.getResponse().getCookie("JSESSIONID");
+        assertNotNull(sessionCookie);
+        String oldId = sessionCookie.getValue();
 
-        mvc.perform(post("/api/auth/login").session(session).cookie(csrfCookie)
-                .with(request -> {
-                    request.setRequestedSessionId(oldId);
-                    request.setRequestedSessionIdValid(true);
-                    return request;
-                })
+        var loginResult = mvc.perform(post("/api/auth/login").cookie(sessionCookie, csrfCookie)
                 .header(csrf.get("headerName").asString(), csrfCookie.getValue())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(new RegisterRequest(email, "TestPassword123!"))))
-                .andExpect(status().isNoContent());
+                .andExpect(status().isNoContent()).andReturn();
 
-        assertNotEquals(oldId, session.getId());
-        mvc.perform(get("/me").session(session))
+        sessionCookie = loginResult.getResponse().getCookie("JSESSIONID");
+        assertNotNull(sessionCookie);
+        assertNotEquals(oldId, sessionCookie.getValue());
+        mvc.perform(get("/me").cookie(sessionCookie))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.username").value(email));
 
-        var refreshed = mvc.perform(get("/api/auth/csrf").session(session)).andReturn();
+        var refreshed = mvc.perform(get("/api/auth/csrf").cookie(sessionCookie)).andReturn();
         var nextCsrf = json.readTree(refreshed.getResponse().getContentAsString());
         var refreshedCookie = refreshed.getResponse().getCookie("XSRF-TOKEN");
         assertNotNull(refreshedCookie);
-        mvc.perform(post("/api/auth/logout").session(session).cookie(refreshedCookie)
+        mvc.perform(post("/api/auth/logout").cookie(sessionCookie, refreshedCookie)
                 .header(nextCsrf.get("headerName").asString(), refreshedCookie.getValue()))
                 .andExpect(status().isNoContent());
-        assertTrue(session.isInvalid());
+        mvc.perform(get("/me").cookie(sessionCookie)).andExpect(status().isUnauthorized());
         mvc.perform(get("/me")).andExpect(status().isUnauthorized());
     }
 

@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
@@ -33,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.session.data.redis.namespace=ticketlock:test:mockmvc")
 @AutoConfigureMockMvc
 @ActiveProfiles("jwt")
 @Transactional
@@ -77,15 +76,16 @@ class JwtAccessTokenTests {
         var csrfResult = mvc.perform(get("/api/auth/csrf")).andReturn();
         var csrf = json.readTree(csrfResult.getResponse().getContentAsString());
         var csrfCookie = csrfResult.getResponse().getCookie("XSRF-TOKEN");
-        var sessionResult = mvc.perform(get("/lab/session")).andReturn();
-        var session = (MockHttpSession) sessionResult.getRequest().getSession(false);
-        mvc.perform(post("/api/auth/login").session(session).cookie(csrfCookie)
+        assertNotNull(csrfCookie);
+        var loginResult = mvc.perform(post("/api/auth/login").cookie(csrfCookie)
                 .header(csrf.get("headerName").asString(), csrfCookie.getValue())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(new LoginRequest(account.getEmail(), "TestPassword123!"))))
-                .andExpect(status().isNoContent());
-        mvc.perform(get("/me").session(session)).andExpect(status().isOk());
-        mvc.perform(get("/api/stateless/me").session(session)).andExpect(status().isUnauthorized());
+                .andExpect(status().isNoContent()).andReturn();
+        var sessionCookie = loginResult.getResponse().getCookie("JSESSIONID");
+        assertNotNull(sessionCookie);
+        mvc.perform(get("/me").cookie(sessionCookie)).andExpect(status().isOk());
+        mvc.perform(get("/api/stateless/me").cookie(sessionCookie)).andExpect(status().isUnauthorized());
     }
 
     @Test
