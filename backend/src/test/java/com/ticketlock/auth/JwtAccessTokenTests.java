@@ -76,9 +76,11 @@ class JwtAccessTokenTests {
         var account = account(Role.CUSTOMER);
         var csrfResult = mvc.perform(get("/api/auth/csrf")).andReturn();
         var csrf = json.readTree(csrfResult.getResponse().getContentAsString());
-        var session = (MockHttpSession) csrfResult.getRequest().getSession(false);
-        mvc.perform(post("/api/auth/login").session(session)
-                .header(csrf.get("headerName").asString(), csrf.get("token").asString())
+        var csrfCookie = csrfResult.getResponse().getCookie("XSRF-TOKEN");
+        var sessionResult = mvc.perform(get("/lab/session")).andReturn();
+        var session = (MockHttpSession) sessionResult.getRequest().getSession(false);
+        mvc.perform(post("/api/auth/login").session(session).cookie(csrfCookie)
+                .header(csrf.get("headerName").asString(), csrfCookie.getValue())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json.writeValueAsString(new LoginRequest(account.getEmail(), "TestPassword123!"))))
                 .andExpect(status().isNoContent());

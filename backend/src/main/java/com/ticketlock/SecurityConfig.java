@@ -14,7 +14,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import com.ticketlock.security.SpaCsrfTokenRequestHandler;
 import org.springframework.security.web.csrf.CsrfAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy;
 import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
@@ -50,7 +51,9 @@ public class SecurityConfig {
 
     @Bean
     public CsrfTokenRepository csrfTokenRepository() {
-        return new HttpSessionCsrfTokenRepository();
+        var repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        repository.setCookiePath("/");
+        return repository;
     }
 
     @Bean
@@ -85,7 +88,9 @@ public class SecurityConfig {
             SessionRegistry registry) throws Exception {
         http
                 .securityContext(context -> context.securityContextRepository(contexts))
-                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokens))
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfTokens)
+                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler()))
                 .sessionManagement(session -> session
                         .maximumSessions(1)
                         .maxSessionsPreventsLogin(false)
@@ -109,7 +114,7 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .logout(logout -> logout
                         .logoutUrl("/api/auth/logout")
-                        .deleteCookies("JSESSIONID")
+                        .deleteCookies("JSESSIONID", "XSRF-TOKEN")
                         .logoutSuccessHandler((request, response, authentication) -> response.setStatus(204)));
 
         return http.build();

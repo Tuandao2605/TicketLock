@@ -8,7 +8,7 @@ Hai SecurityFilterChain:
 
 | Phạm vi | Thứ tự | Xác thực | CSRF |
 |---|---|---|---|
-| `/api/token/**`, `/api/stateless/**` | 1 | Bearer JWT hoặc refresh token trong JSON body, STATELESS | Tắt vì không dùng cookie để xác thực |
+| `/api/token/**`, `/api/stateless/**` | 1 | Email/password JSON khi login, refresh token JSON khi rotate/logout, bearer JWT trên API; STATELESS | Tắt vì không dùng cookie để xác thực |
 | Các đường dẫn còn lại | 2 | HTTP session như trước | Bật |
 
 Spring chọn chain khớp đầu tiên. Chain JWT không lưu Authentication vào HTTP
@@ -136,6 +136,29 @@ và logout dùng token trong JSON body, không dùng cookie, nên CSRF filter c�
 Không gửi hai refresh request song song từ cùng client. Backend serialize việc dùng
 cùng token bằng row lock; request thứ hai thấy token đã dùng và thu hồi family, nên
 client cần single-flight/mutex nếu sau này refresh tự động từ React.
+
+### Mở nhiều tab và refresh đồng thời
+
+Hiện React của TicketLock dùng HTTP session (`JSESSIONID`) cho đăng nhập; React chưa
+gọi `/api/token/refresh`. JWT/refresh flow trong bài này được thao tác thủ công qua
+Postman. Vì vậy, Web Locks, SharedWorker và BroadcastChannel chưa giải quyết lỗi nào
+trong luồng đang chạy, nên chưa được thêm vào frontend.
+
+Nếu sau này React tích hợp JWT refresh tự động, hãy điều phối một refresh tại một thời
+điểm trong cùng origin bằng Web Locks hoặc SharedWorker. Khóa chỉ điều phối các tab
+tuân thủ cùng cơ chế trên cùng origin; nó không đồng bộ thiết bị khác, client ngoài
+browser, hoặc request đã gửi trước khi tab giữ khóa. [Web Locks API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Locks_API)
+yêu cầu secure context. [BroadcastChannel](https://developer.mozilla.org/en-US/docs/Web/API/Broadcast_Channel_API)
+cũng giới hạn ở cùng origin và không phải ranh giới bảo mật; tránh phát refresh token
+dài hạn cho mọi tab.
+
+Backend giữ strict rotation: token cũ dùng lại sẽ thu hồi đúng token family, không
+khóa toàn bộ tài khoản. Không thêm grace period 30 giây theo mặc định: server không
+thể phân biệt tab hợp lệ với kẻ đang replay cùng bearer token; trả lại token kế tiếp
+cho token cũ sẽ cho phép token bị lấy cắp hoạt động thêm trong khoảng grace. OAuth
+khuyến nghị rotation hoặc sender-constrained token để phát hiện replay
+([RFC 9700 §4.14.2](https://www.rfc-editor.org/rfc/rfc9700.html#section-4.14.2));
+cơ chế phía client giúp giảm request đua hợp lệ nhưng không thay thế kiểm tra replay ở server.
 
 ## Trade-off cần giải thích
 

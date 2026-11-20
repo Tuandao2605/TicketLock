@@ -14,10 +14,12 @@ Xây dựng ứng dụng quản lý sự kiện và đặt vé đơn giản bằ
 - JWT: access token, refresh token và rotation.
 - HTTP security: CSRF, CORS, cookie và xử lý lỗi xác thực.
 
-Ứng dụng có hai hình thức đăng nhập:
+Ứng dụng hiện có hai luồng xác thực độc lập:
 
-- **Admin Portal:** form login, duy trì trạng thái bằng HTTP session.
-- **Customer API:** đăng nhập nhận token, gọi API bằng bearer JWT.
+- **React (ADMIN/CUSTOMER):** login JSON tại `/api/auth/login`, duy trì trạng thái bằng HTTP session và cookie CSRF. Backend đã tắt form login.
+- **JWT lab, profile `jwt`:** `/api/token/login` trả access/refresh token; `/api/stateless/**` dùng bearer JWT. React chưa dùng luồng này.
+
+Phần Event/Booking và portal quản trị chuyên biệt bên dưới là mục tiêu tiếp theo, chưa được triển khai. Hiện ownership thực hành trên hồ sơ `/api/users/{userId}`. Thiết kế nâng cao là kế hoạch riêng, không phải hiện trạng.
 
 Mục tiêu sau 14 ngày là tự triển khai, debug và giải thích được hai luồng này. Nghiệp vụ đặt vé chỉ đóng vai trò tạo tình huống thực hành bảo mật.
 
@@ -59,9 +61,9 @@ Chưa triển khai thanh toán thật, chọn ghế, giữ ghế bằng Redis, O
 | Bảo mật | Spring Security |
 | Truy cập dữ liệu | Spring Data JPA |
 | Database | PostgreSQL |
-| Admin UI | Thymeleaf |
+| UI hiện tại | React + Vite; Thymeleaf còn là dependency nhưng không phục vụ form login |
 | Validation | Jakarta Bean Validation |
-| Session phân tán | Spring Session + Redis, bổ sung ở giai đoạn cuối |
+| Session phân tán | Spring Session + Redis đã có, bật profile `redis` |
 | Công cụ kiểm tra | Browser DevTools, Postman hoặc curl |
 | Build | Gradle (Groovy DSL) |
 
@@ -70,7 +72,7 @@ Chọn bản Spring Boot ổn định có hỗ trợ Java 21 khi khởi tạo. �
 Ứng dụng là một backend duy nhất:
 
 ```text
-Browser Admin ── Form + Cookie ──┐
+Browser React ─ JSON + Cookie ──┐
                                 │
                                 ▼
                        Spring Boot Application
@@ -99,9 +101,9 @@ Ban đầu HTTP session lưu trong bộ nhớ ứng dụng. Khi đã hiểu cơ 
 | `enabled` | Cho phép hoặc vô hiệu hóa tài khoản |
 | `createdAt` | Ngày tạo |
 
-Mỗi người dùng chỉ có một role. Không trả `passwordHash` trong response và không ghi mật khẩu vào log. Tạo sẵn một admin và hai customer trong môi trường development để thử phân quyền và ownership.
+User hiện dùng UUIDv7 do Hibernate sinh và PostgreSQL lưu kiểu uuid. Mỗi người dùng chỉ có một role. Không trả `passwordHash` trong response và không ghi mật khẩu vào log. Tạo sẵn một admin và hai customer trong môi trường development để thử phân quyền và ownership.
 
-### Event
+### Event — dự kiến, chưa có entity/endpoint
 
 | Trường | Ý nghĩa |
 |---|---|
@@ -116,7 +118,7 @@ Mỗi người dùng chỉ có một role. Không trả `passwordHash` trong res
 
 Trong bản mini, vé chưa có ghế, giá tiền hoặc giới hạn số lượng. Mỗi booking đại diện cho một vé. Mọi admin được quản lý mọi sự kiện; ownership được thực hành trên booking của customer.
 
-### Booking
+### Booking — dự kiến, chưa có entity/endpoint
 
 | Trường | Ý nghĩa |
 |---|---|
@@ -136,13 +138,12 @@ Quy tắc nghiệp vụ:
 
 ### RefreshToken
 
-Bổ sung khi học refresh token.
+Đã triển khai trong profile `jwt`; `tokenHash` chính là khóa chính, không có cột `id` riêng.
 
 | Trường | Ý nghĩa |
 |---|---|
-| `id` | Khóa chính |
 | `userId` | Chủ token |
-| `tokenHash` | Hash của refresh token |
+| `tokenHash` | Hash SHA-256 của refresh token, khóa chính |
 | `familyId` | Nhóm token thuộc cùng một lần đăng nhập |
 | `expiresAt` | Hạn sử dụng |
 | `usedAt` | Thời điểm token được đổi |
@@ -152,7 +153,23 @@ Refresh token là chuỗi ngẫu nhiên, chỉ lưu hash trong database. Khi ref
 
 ## 5. Endpoint
 
-### Admin Portal — session
+### React/session — endpoint đang chạy
+
+| Method | Endpoint | Hành vi |
+|---|---|---|
+| GET | `/api/auth/csrf` | Public, cấp cookie XSRF-TOKEN và metadata JSON |
+| POST | `/api/auth/register` | Public + CSRF, đăng ký CUSTOMER, trả 201 |
+| POST | `/api/auth/login` | Public + CSRF, JSON email/password, trả 204 |
+| POST | `/api/auth/logout` | CSRF, hủy phiên và xóa cookie, trả 204 |
+| GET | `/me` | Đã đăng nhập, trả username/authorities |
+| GET | `/api/users/me` | Hồ sơ tài khoản từ DB |
+| GET | `/api/users/{userId}` | Chỉ được đọc chính mình; sai owner trả 403 |
+| GET | `/api/admin/hello` | ADMIN |
+| GET | `/api/customer/hello` | CUSTOMER |
+
+### Admin Portal — đề xuất ban đầu, chưa triển khai
+
+Các URL `/admin/**` dưới đây chưa có controller và chưa có rule ADMIN riêng; không dùng chúng làm hướng dẫn chạy hiện tại.
 
 | Method | Endpoint | Quyền | Chức năng |
 |---|---|---|---|
@@ -166,9 +183,11 @@ Refresh token là chuỗi ngẫu nhiên, chỉ lưu hash trong database. Khi ref
 | POST | `/admin/events/{id}/update` | ADMIN | Sửa sự kiện |
 | GET | `/admin/bookings` | ADMIN | Xem booking |
 
-Các form thay đổi dữ liệu phải gửi CSRF token. Form login và logout do Spring Security xử lý, không tự viết lại logic kiểm tra mật khẩu trong controller.
+Hiện tại JSON login do `LoginController` gọi `AuthenticationManager` và session strategy rồi lưu context. Logout do Spring Security xử lý. CSRF cookie được đọc và gửi qua header `X-XSRF-TOKEN`.
 
-### Customer API — bearer JWT
+### JWT lab và Customer API dự kiến
+
+Ba endpoint `/api/token/*` đã có khi bật profile `jwt`. Endpoint hiện có để đọc JWT là GET `/api/stateless/me` và `/api/stateless/admin/hello`. Các URL event/booking và `/api/me` trong bảng là dự kiến, chưa có mapping.
 
 | Method | Endpoint | Quyền | Chức năng |
 |---|---|---|---|
@@ -201,29 +220,28 @@ Trong bản mini, refresh token truyền trong JSON body và kiểm tra bằng P
 
 | Chain | Phạm vi | Authentication | Session | CSRF |
 |---|---|---|---|---|
-| API | `/api/**` | Bearer JWT | `STATELESS` | Tắt vì thiết kế này không dùng cookie xác thực |
-| Admin | `/admin/**` | Form login | `IF_REQUIRED` | Bật |
-| Fallback | Các đường dẫn còn lại | Không cấp quyền mặc định | Không phục vụ đăng nhập | Giữ bảo vệ mặc định |
+| JWT, @Order(1), profile jwt | `/api/token/**`, `/api/stateless/**` | JSON credentials/refresh hoặc Bearer JWT tùy endpoint | `STATELESS` | Tắt vì không dùng cookie xác thực |
+| Session, @Order(2) | Mọi request còn lại | JSON login + cookie session | HTTP session khi cần | CookieCsrfTokenRepository |
 
 Yêu cầu:
 
 - Cấu hình thứ tự bằng `@Order` và phạm vi bằng `securityMatcher`.
-- Chain fallback từ chối đường dẫn chưa khai báo; nếu thêm tài nguyên CSS hoặc trang lỗi, khai báo quyền truy cập phù hợp.
+- Session chain hiện có `anyRequest().authenticated()`, chưa phải deny-by-default. Đường dẫn chưa mapping sau khi xác thực thường trả 404.
 - Cookie admin không xác thực Customer API.
 - JWT không thay thế session của Admin Portal.
-- API trả JSON khi lỗi; portal dùng trang login hoặc trang báo lỗi.
+- Session entry point trả 401 thay vì redirect. Chưa chuẩn hóa JSON cho mọi lỗi: một số response 401/403 có thể không có body.
 - Dùng OAuth2 Resource Server của Spring Security để kiểm tra JWT. Chưa tự viết JWT authentication filter.
-- Việc phát hành token thuộc `AuthService`; Resource Server đảm nhiệm xác minh bearer token.
+- `AccessTokenService` phát access JWT, `RefreshTokenService` quản lý rotation; Resource Server xác minh bearer token.
 - Chuẩn hóa authority: ví dụ `ROLE_ADMIN`, `ROLE_CUSTOMER`, và ánh xạ claim JWT tương ứng để `hasRole` hoạt động đúng.
 
-### Luồng đăng nhập admin
+### Luồng session login hiện tại (ADMIN hoặc CUSTOMER)
 
 ```text
 1. Browser mở trang login.
 2. Người dùng gửi email, password và CSRF token.
 3. Spring Security tải User từ database.
 4. PasswordEncoder kiểm tra mật khẩu.
-5. Xác thực thành công và đổi Session ID để chống session fixation.
+5. Xác thực thành công: đổi ID nếu đã có session; tạo phiên khi cần lưu context nếu chưa có.
 6. SecurityContext được duy trì qua HTTP session.
 7. Browser gửi cookie session trong request tiếp theo.
 8. Logout làm session mất hiệu lực và xóa cookie tương ứng.
@@ -280,7 +298,9 @@ Response lỗi không chứa stack trace, mật khẩu, token hoặc thông tin 
 
 CORS chỉ bổ sung khi thực hành client khác origin: chỉ cho phép origin cần thiết. Postman không chịu cơ chế CORS của trình duyệt, nên dùng browser để kiểm chứng phần này.
 
-## 8. Cấu trúc source code
+## 8. Cấu trúc source code dự kiến
+
+Hiện `SecurityConfig`, `HelloController`, `SessionLabController` ở package gốc `com.ticketlock`. Các module `auth` và `user` đã tách controller/service/dto/entity/repository; `user` có mapper. Các package event/booking/admin trong sơ đồ dưới là dự kiến.
 
 ```text
 com.ticketlock
@@ -322,7 +342,7 @@ Dự kiến 3–4 giờ tập trung mỗi ngày. Mỗi buổi gồm đọc khái
 |---|---|
 | 1 | Khởi tạo app, quan sát HTTP, cookie và session |
 | 2 | Filter chain, endpoint public và protected |
-| 3 | User trong PostgreSQL, BCrypt, form login |
+| 3 | User trong PostgreSQL, BCrypt, JSON session login và đăng ký CUSTOMER |
 | 4 | Debug authentication; hiểu AuthenticationManager, AuthenticationProvider, UserDetailsService, SecurityContext; đọc current user |
 | 5 | ADMIN/CUSTOMER và method security |
 | 6 | Timeout, logout, session lifecycle — thực hành tại [docs/day-06.md](docs/day-06.md) |
@@ -330,9 +350,9 @@ Dự kiến 3–4 giờ tập trung mỗi ngày. Mỗi buổi gồm đọc khái
 | 8 | CSRF, CORS, xử lý 401/403 |
 | 9 | Login API, phát hành và kiểm tra JWT |
 | 10 | Refresh token, rotation, logout — thực hành tại [docs/jwt-access-token-lab.md](docs/jwt-access-token-lab.md) |
-| 11 | Hoàn thiện hai mô hình bảo mật trong cùng ứng dụng |
+| 11 | Hoàn thiện hai mô hình bảo mật trong cùng ứng dụng — thực hành tại [docs/day-11.md](docs/day-11.md) |
 | 12 | Chuyển HTTP session sang Redis |
-| 13 | Booking ownership và kiểm thử bảo mật |
+| 13 | Ownership hồ sơ đã có; booking ownership chờ triển khai nghiệp vụ |
 | 14 | Demo, sửa lỗi, viết README giải thích thiết kế |
 
 Không cần viết toàn bộ kiến trúc ngay ngày đầu. Mỗi ngày bổ sung phần đang học và kiểm chứng trước khi chuyển bước.
@@ -351,7 +371,9 @@ Tạo Gradle project (Groovy DSL) dùng Java 21 với:
 
 PostgreSQL và JPA thêm ngày 3 để ngày đầu tập trung vào HTTP và session.
 
-### Bước 2 — Quan sát Spring Security mặc định
+### Bước 2 — Quan sát Spring Security mặc định (lịch sử ngày đầu)
+
+Bản hiện tại đã có `CustomUserDetailsService` và tắt form login, nên không còn user/password sinh tự động hay trang login backend. Phần này chỉ mô tả giai đoạn khởi tạo; không xóa cấu hình hiện tại để thử lại.
 
 Tạo endpoint `GET /hello`, chạy ứng dụng và truy cập bằng browser. Đăng nhập bằng tài khoản development mặc định do Spring Security cung cấp khi chưa có cấu hình tài khoản riêng.
 
@@ -423,7 +445,7 @@ Tạo `docs/day-01.md`, trả lời bằng lời của mình:
 - [ ] Customer A không xem hoặc hủy được booking của customer B.
 - [ ] Cookie admin không thay thế bearer JWT trên API.
 - [ ] Request thay đổi dữ liệu admin thiếu CSRF token bị từ chối.
-- [ ] Các đường dẫn không khai báo bị từ chối.
+- [ ] Chuyển chính sách URL sang deny-by-default khi chốt endpoint (hiện tại fallback chỉ yêu cầu xác thực).
 - [ ] Endpoint `/lab/**` được loại bỏ.
 - [ ] Có kiểm thử tích hợp cho các ranh giới quyền chính và README hướng dẫn chạy, demo.
 
@@ -452,4 +474,4 @@ Dự án sử dụng Gradle Wrapper, không cần cài Gradle riêng. Cần JDK 
 ./backend/gradlew -p backend bootJar    # Đóng gói executable JAR vào build/libs/
 ```
 
-Trên Windows dùng `gradlew.bat`. Lần đầu wrapper tải Gradle và dependency vào `~/.gradle`. Kết quả build nằm trong `build/`.
+Trên Windows dùng `gradlew.bat`. Lần đầu wrapper tải Gradle và dependency vào `~/.gradle`. Kết quả build nằm trong `backend/build/`. Các lệnh trên chạy từ thư mục gốc repository.

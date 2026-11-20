@@ -11,11 +11,13 @@ Ghi chú từ bài thực hành TicketLock Mini. Trọng tâm ngày 2 là hiểu
 ```text
 HTTP Request ───→ [ SecurityFilterChain ] ───→ [ DispatcherServlet ] ───→ [ Controller ]
                          │
-                         ├── 1. Kiểm tra CSRF Token (CsrfFilter)
-                         ├── 2. Đọc Session / Cookie (SecurityContextHolderFilter)
-                         ├── 3. Kiểm tra danh tính (AuthenticationFilter)
-                         └── 4. Quyết định quyền truy cập (AuthorizationFilter)
+                         ├── Khôi phục SecurityContext từ session
+                         ├── Kiểm tra CSRF với method cần bảo vệ
+                         ├── Xử lý logout / phiên bị đăng nhập thay thế
+                         └── Quyết định quyền truy cập (AuthorizationFilter)
 ```
+
+Đây là sơ đồ rút gọn, không liệt kê mọi filter. JSON login hiện do `LoginController` gọi `AuthenticationManager`, không phải form-login filter. Profile `jwt` thêm chain riêng cho `/api/token/**` và `/api/stateless/**`.
 
 - **Tập trung hóa bảo mật:** Thay vì phải kiểm tra quyền trong từng hàm Controller bằng code thủ công, mọi luật bảo vệ được cấu hình tập trung tại một nơi.
 - **Đưa ra phán quyết:** Cho phép request đi tiếp vào Controller, chuyển hướng sang trang đăng nhập (`302 Found`), hoặc ngắt luồng và trả về lỗi (`401 Unauthorized` / `403 Forbidden`).
@@ -26,9 +28,9 @@ HTTP Request ───→ [ SecurityFilterChain ] ───→ [ DispatcherServl
 
 | Quy tắc | Đối tượng áp dụng | Hành vi của hệ thống | Tình huống sử dụng thực tế |
 |---|---|---|---|
-| **`permitAll()`** | Mọi người dùng (bao gồm khách vãng lai chưa đăng nhập) | Cho phép request đi qua thẳng tới Controller mà không đòi hỏi danh tính. | Trang chủ xem danh sách sự kiện mở bán, tài nguyên tĩnh (CSS, JS, ảnh), endpoint lab session, trang `/login`. |
-| **`authenticated()`** | Chỉ người dùng **đã đăng nhập thành công** | Kiểm tra `SecurityContext`. Nếu chưa xác thực (Anonymous), lập tức chặn lại và chuyển hướng về trang đăng nhập. | Trang xem thông tin cá nhân `/me`, đổi mật khẩu, xem lịch sử đặt vé. |
-| **`denyAll()`** | **Không một ai** (kể cả Admin có toàn quyền) | Chặn tuyệt đối mọi request, luôn trả về mã lỗi `403 Forbidden`. | Tạm khóa các endpoint đang bảo trì khẩn cấp, vô hiệu hóa các tính năng thử nghiệm nội bộ chưa cho phép sử dụng. |
+| **`permitAll()`** | Mọi người dùng (bao gồm khách vãng lai chưa đăng nhập) | Không yêu cầu danh tính ở bước authorization; CSRF và các filter khác vẫn áp dụng. | Trong code hiện tại: `/public/**`, endpoint lab session, `/api/auth/csrf`, `/api/auth/login`, `/api/auth/register`. `/login` là trang React ở cổng 5173. |
+| **`authenticated()`** | Chỉ người dùng **đã đăng nhập thành công** | Kiểm tra `SecurityContext`. Nếu chưa xác thực, trả `401` theo cấu hình hiện tại; React hiển thị form đăng nhập. | Trang xem thông tin cá nhân `/me`, đổi mật khẩu, xem lịch sử đặt vé. |
+| **`denyAll()`** | **Không một ai** (kể cả Admin có toàn quyền) | Từ chối truy cập. Trong bài GET `/blocked`, đã đăng nhập nhận `403`; chưa đăng nhập nhận `401` theo entry point hiện tại. | Tạm khóa các endpoint đang bảo trì khẩn cấp, vô hiệu hóa các tính năng thử nghiệm nội bộ chưa cho phép sử dụng. |
 
 ---
 
@@ -72,7 +74,7 @@ $$\text{Client Request} \longrightarrow \mathbf{[SecurityFilterChain]} \longrigh
 2. Khi request gửi đến endpoint `/blocked` (được gắn quy tắc `.denyAll()` hoặc yêu cầu `.authenticated()` nhưng chưa login):
    - Bộ lọc an ninh (`AuthorizationFilter`) phát hiện vi phạm quyền hạn.
    - Nó **chặn đứng request ngay tại trạm gác**, không gọi tiếp `filterChain.doFilter()`.
-   - Hệ thống tự tạo `HttpServletResponse` chứa mã lỗi `403 Forbidden` và gửi thẳng về cho Client.
+   - Với người đã đăng nhập, hệ thống trả `403 Forbidden`; với khách chưa xác thực, entry point hiện tại trả `401`.
 3. Request **chưa từng chạm tới** `DispatcherServlet` nên code Java bên trong hàm của Controller hoàn toàn không được thực thi.
 
 ---
@@ -87,7 +89,7 @@ $$\text{Client Request} \longrightarrow \mathbf{[SecurityFilterChain]} \longrigh
 - **Authorization (Phân quyền - Bạn có quyền làm gì?):**
   - Trả lời cho câu hỏi quyền hạn và phạm vi thao tác.
   - Sau khi xác thực danh tính, hệ thống tiếp tục kiểm tra:
-    1. **Vai trò (Role-based):** Endpoint `/admin/**` chỉ dành cho tài khoản có role `ADMIN`. Một tài khoản `CUSTOMER` dù đã đăng nhập thành công vẫn sẽ nhận `403 Forbidden` khi cố truy cập trang quản trị.
-    2. **Quyền sở hữu (Ownership-based):** Khách hàng A đã đăng nhập chỉ được xem và hủy vé của chính mình, không được phép xem hay hủy đơn đặt vé của khách hàng B (`/bookings/{id}`).
+    1. **Vai trò (Role-based):** Endpoint `/api/admin/**` chỉ dành cho tài khoản có role `ADMIN`. Một tài khoản `CUSTOMER` dù đã đăng nhập thành công vẫn sẽ nhận `403 Forbidden` khi cố truy cập trang quản trị.
+    2. **Quyền sở hữu (Ownership-based):** Hiện tại `/api/users/{userId}` chỉ cho đọc hồ sơ chính mình, kể cả ADMIN. Booking ownership là bước dự kiến, chưa có endpoint booking.
 
 Đăng nhập thành công chỉ là "tấm vé qua cửa tòa nhà" (Authentication), còn việc được vào từng phòng ban cụ thể hay không phụ thuộc vào "chức vụ và quyền hạn" (Authorization).

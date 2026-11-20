@@ -56,10 +56,10 @@ class RedisSessionTests {
             assertEquals(200, get(newClient, base(first) + "/me").statusCode());
             assertEquals(200, get(newClient, base(second) + "/me").statusCode());
 
-            var csrf = json.readTree(get(newClient, base(second) + "/api/auth/csrf").body());
+            var csrf = csrf(newClient, base(second), json);
             var logout = HttpRequest.newBuilder(URI.create(base(second) + "/api/auth/logout"))
                     .timeout(Duration.ofSeconds(10))
-                    .header(csrf.get("headerName").asString(), csrf.get("token").asString())
+                    .header(csrf.headerName(), csrf.token())
                     .POST(HttpRequest.BodyPublishers.noBody()).build();
             assertEquals(204, newClient.send(logout, HttpResponse.BodyHandlers.ofString()).statusCode());
             assertEquals(401, get(newClient, base(first) + "/me").statusCode());
@@ -96,14 +96,26 @@ class RedisSessionTests {
     }
 
     private void login(HttpClient client, String base, String email, ObjectMapper json) throws Exception {
-        var csrfResponse = get(client, base + "/api/auth/csrf");
-        assertEquals(200, csrfResponse.statusCode());
-        var csrf = json.readTree(csrfResponse.body());
+        var csrf = csrf(client, base, json);
         var request = HttpRequest.newBuilder(URI.create(base + "/api/auth/login"))
                 .timeout(Duration.ofSeconds(10)).header("Content-Type", "application/json")
-                .header(csrf.get("headerName").asString(), csrf.get("token").asString())
+                .header(csrf.headerName(), csrf.token())
                 .POST(HttpRequest.BodyPublishers.ofString(json.writeValueAsString(
                         Map.of("email", email, "password", "TestPassword123!")))).build();
         assertEquals(204, client.send(request, HttpResponse.BodyHandlers.ofString()).statusCode());
     }
+
+    private Csrf csrf(HttpClient client, String base, ObjectMapper json) throws Exception {
+        var response = get(client, base + "/api/auth/csrf");
+        assertEquals(200, response.statusCode());
+        var metadata = json.readTree(response.body());
+        var cookieManager = (CookieManager) client.cookieHandler().orElseThrow();
+        var token = cookieManager.getCookieStore().get(URI.create(base)).stream()
+                .filter(cookie -> cookie.getName().equals("XSRF-TOKEN"))
+                .map(java.net.HttpCookie::getValue)
+                .findFirst().orElseThrow(() -> new AssertionError("Missing XSRF-TOKEN cookie"));
+        return new Csrf(metadata.get("headerName").asString(), token);
+    }
+
+    private record Csrf(String headerName, String token) { }
 }

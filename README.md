@@ -1,5 +1,15 @@
 # TicketLock Mini
 
+Bài JWT access token, refresh rotation và logout: xem `docs/jwt-access-token-lab.md`.
+Tạo khóa bằng `bash scripts/generate-jwt-keys.sh`, rồi chạy backend với profile
+`jwt`. Có thể kết hợp `redis,jwt`; React hiện tiếp tục dùng session login.
+Đối chiếu session và JWT trên cùng ứng dụng theo `docs/day-11.md`.
+
+Bài Spring Session Redis: xem `docs/redis-session-lab.md`.
+Chạy `docker compose --profile redis up -d --wait`, sau đó bật backend bằng
+`./backend/gradlew -p backend bootRun --args='--spring.profiles.active=redis'`.
+Không bật profile thì session tiếp tục nằm trong Tomcat như các bài trước.
+
 User ID dùng kiểu PostgreSQL `uuid`, sinh bằng Hibernate
 `@UuidGenerator(style = UuidGenerator.Style.VERSION_7)` khi persist.
 Không dùng `GenerationType.UUID` mặc định để suy ra version 7.
@@ -12,7 +22,7 @@ docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U ticketlock_app -d tic
 
 Migration giữ tài khoản và bảng ánh xạ `user_id_migration` (old_id → new_id),
 từ chối chạy nếu có khóa ngoại cần xử lý riêng. `ddl-auto=update` không thay
-thế migration này. Database local hiện tại đã được chuyển đổi.
+thế migration này. Kiểm tra kiểu cột `app_users.id` trên database của bạn trước khi quyết định có cần migration.
 
 ## Cấu trúc thư mục
 
@@ -21,7 +31,7 @@ backend/       # Spring Boot: src, build.gradle, Gradle Wrapper
 frontend/      # React + Vite
 docs/          # Ghi chép và bài thực hành
 scripts/       # SQL chạy thủ công
-compose.yaml   # PostgreSQL local
+compose.yaml   # PostgreSQL local; Redis tùy chọn qua profile redis
 .env           # Cấu hình local, Git bỏ qua
 ```
 
@@ -31,6 +41,10 @@ thư mục gốc; khi Debug trong VS Code, chọn `Debug TicketLock Backend`.
 Lab học bảo mật: [kiểm thử các lỗ hổng trên TicketLock](docs/security-testing-lab.md).
 
 Bài thực hành Spring Security và HTTP session, dùng Java 21, Spring Boot và Gradle.
+
+Hoàn thiện ngày 6 về idle timeout, logout và vòng đời HTTP session: xem
+`docs/day-06.md`. Profile `session-lab` rút ngắn timeout còn một phút để thử nhanh;
+cấu hình mặc định vẫn là 15 phút.
 
 Hướng phát triển: nền tảng đặt vé cạnh tranh cao, engine giữ ghế để nghiên cứu concurrency/CPU cache và quy trình thanh toán phân tán bằng Saga, Outbox, Kafka. Xem [thiết kế nâng cao](TICKETLOCK_ADVANCED_DESIGN.md). Đây là kiến trúc dự kiến, chưa phải chức năng đã triển khai.
 
@@ -91,14 +105,13 @@ Mở frontend tại host localhost, cổng 5173, đường dẫn `/register`.
 Frontend dùng React + Vite và proxy request tới backend cổng 8080.
 Không mở file HTML trực tiếp hoặc dùng Live Server.
 
-React lấy CSRF token qua `GET /api/auth/csrf`, gửi token và cookie cùng
-`POST /api/auth/register`. Không tắt CSRF và không cần mở CORS cho môi trường dev này.
+React lấy cookie `XSRF-TOKEN` qua `GET /api/auth/csrf`, đọc token ở frontend và gửi nó trong header `X-XSRF-TOKEN` cùng cookie khi gọi `POST /api/auth/register`. CSRF token không được lưu trong session; `JSESSIONID` vẫn được dùng cho phiên đăng nhập. Không tắt CSRF và không cần mở CORS cho môi trường dev này.
 Backend trả 201 khi thành công, cố định role CUSTOMER, hash mật khẩu BCrypt
 và lưu vào `app_users`. Không cần initializer hoặc SQL để tạo customer.
 
 Đăng nhập dùng giao diện React tại `/login`, gửi JSON `{ email, password }` tới
-`POST /api/auth/login`. Controller gọi AuthenticationManager, đổi Session ID, làm mới CSRF và lưu SecurityContext vào session; đăng nhập
-thành công trả 204, sai thông tin trả 401. React đọc `/me` để hiển thị email.
+`POST /api/auth/login`. Controller gọi AuthenticationManager, đổi ID của session có sẵn (hoặc tạo session khi cần lưu context), xóa CSRF cookie cũ và lưu SecurityContext vào session. Gọi lại `/api/auth/csrf` trước POST tiếp theo để nhận cookie token mới.
+Đăng nhập thành công trả 204, sai thông tin trả 401. React đọc `/me` để hiển thị email.
 Đăng xuất gửi POST `/api/auth/logout` với CSRF token mới; server hủy session.
 Frontend build bằng `npm run build`; `dist/` chưa được tích hợp phục vụ từ backend.
 Proxy chỉ dùng cho development; triển khai cần cấu hình reverse proxy cùng origin.
@@ -115,7 +128,7 @@ Script chạy thủ công, không tự chạy khi ứng dụng khởi động. M
 câu INSERT đã được hash BCrypt bằng PasswordEncoder của Spring Security.
 
 Tài khoản local: `admin@ticketlock.test` / `AdminLocal123!`.
-Nhập email vào ô Username trên form `/login`; mở `/me` sau khi đăng nhập.
+Nhập email vào giao diện React `/login` ở cổng 5173; mở `/me` qua cùng frontend sau khi đăng nhập.
 Không cần bật profile dev.
 
 Nếu email đã tồn tại, script giữ nguyên tài khoản và mật khẩu cũ.
@@ -149,7 +162,7 @@ Thiết kế và lộ trình học: [TICKETLOCK_MINI_DESIGN.md](TICKETLOCK_MINI_
 
 ### Kiểm tra login JSON bằng Postman
 
-1. Gửi GET `/api/auth/csrf`, giữ cookie cùng host và lấy `token`, `headerName`.
+1. Gửi GET `/api/auth/csrf`; giữ cookie cùng host. Cookie jar cần có `XSRF-TOKEN`. Endpoint trả metadata `headerName` và `cookieName`; token thực tế đọc từ cookie `XSRF-TOKEN`.
 2. Gửi POST `/api/auth/login`, chọn Body → raw → JSON:
 
 ```json
@@ -159,10 +172,11 @@ Thiết kế và lộ trình học: [TICKETLOCK_MINI_DESIGN.md](TICKETLOCK_MINI_
 }
 ```
 
-Thêm header có tên bằng `headerName`, giá trị bằng `token`; Content-Type là
+Thêm header `X-XSRF-TOKEN` với giá trị bằng cookie `XSRF-TOKEN`; Content-Type là
 `application/json`. Thành công trả 204, sai credentials trả 401, đầu vào lỗi
 trả 400, thiếu CSRF trả 403. Gọi GET `/me` với cookie mới để kiểm tra phiên.
-Lấy lại CSRF token sau đăng nhập trước khi POST logout hoặc thao tác khác.
+Đăng nhập và logout xóa CSRF cookie cũ; gọi GET `/api/auth/csrf` để nhận cookie mới trước thao tác POST tiếp theo.
+Xem [ngày 6](docs/day-06.md) để lấy pre-request script cho login/logout và kiểm tra idle timeout.
 Form-urlencoded không còn là hợp đồng login. Không còn trang login mặc định
 ở backend; dùng giao diện React tại `/login` trên cổng frontend.
 

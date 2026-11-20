@@ -9,6 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class CsrfController {
     @GetMapping("/api/auth/csrf")
     public Map<String, String> csrf(CsrfToken token) {
-        return Map.of("token", token.getToken(), "headerName", token.getHeaderName());
+        return Map.of("headerName", token.getHeaderName(), "cookieName", "XSRF-TOKEN");
     }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
 import { readJson } from './api';
@@ -11,7 +11,12 @@ async function getCsrf() {
     }
     throw new Error(`Không lấy được CSRF token (HTTP ${response.status}). Hãy thử lại.`);
   }
-  return readJson(response);
+  const metadata = await readJson(response);
+  const cookie = document.cookie
+    .split('; ')
+    .find((part) => part.startsWith(`${metadata.cookieName}=`));
+  if (!cookie) throw new Error('Không tìm thấy cookie CSRF. Hãy tải lại trang và thử lại.');
+  return { headerName: metadata.headerName, token: decodeURIComponent(cookie.slice(metadata.cookieName.length + 1)) };
 }
 
 function Login() {
@@ -21,6 +26,52 @@ function Login() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
+
+  const username = user?.username;
+  useEffect(() => {
+    if (busy) return;
+    let active = true;
+    const controller = new AbortController();
+    let pending = false;
+
+    async function checkSession() {
+      if (document.visibilityState === 'hidden' || pending) return;
+      pending = true;
+      try {
+        const response = await fetch('/me', {
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        if (!active) return;
+        if (response.status === 401) {
+          setUser(null);
+          if (username) setError('Phiên đã hết hạn hoặc tài khoản đã đăng nhập ở nơi khác. Vui lòng đăng nhập lại.');
+          return;
+        }
+        if (!response.ok) throw new Error('Không kiểm tra được phiên. Hãy kiểm tra backend.');
+        const profile = await readJson(response);
+        if (active) setUser(profile);
+      } catch (failure) {
+        if (active && failure.name !== 'AbortError') {
+          setError('Không kiểm tra được phiên. Hãy kiểm tra kết nối backend.');
+        }
+      } finally {
+        pending = false;
+      }
+    }
+
+    checkSession();
+    window.addEventListener('focus', checkSession);
+    document.addEventListener('visibilitychange', checkSession);
+    return () => {
+      active = false;
+      controller.abort();
+      window.removeEventListener('focus', checkSession);
+      document.removeEventListener('visibilitychange', checkSession);
+    };
+  }, [busy, username]);
 
   async function submit(event) {
     event.preventDefault();

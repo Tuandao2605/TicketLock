@@ -1,6 +1,6 @@
 # Ngày 01 — HTTP, Cookie và Session
 
-Ghi chú từ bài thực hành TicketLock Mini. Ở giai đoạn hiện tại, ứng dụng dùng HTTP session lưu trong bộ nhớ server, chưa dùng Redis.
+Ghi chú từ bài thực hành TicketLock Mini. Ở cấu hình mặc định, ứng dụng dùng HTTP session trong Tomcat. Profile `redis` chuyển session sang Redis; React vẫn dùng session login trong cả hai chế độ.
 
 ## 1. HTTP stateless nghĩa là gì?
 
@@ -24,7 +24,7 @@ Cookie: JSESSIONID=example-id  ──────→ Session example-id
                                       └── SecurityContext (nếu đã đăng nhập)
 ```
 
-Sau này, Spring Session có thể chuyển nơi lưu session sang Redis. Session không bắt buộc luôn nằm trong RAM của một instance.
+Profile `redis` hiện đã dùng Spring Session để chuyển nơi lưu session sang Redis. Session không bắt buộc luôn nằm trong RAM của một instance.
 
 ## 3. Browser gửi Session ID cho server bằng cách nào?
 
@@ -64,7 +64,7 @@ Nếu truy cập `/lab/session/status` trước, `getSession(false)` không tạ
 {"hasSession":false,"visitCount":0}
 ```
 
-Logout khác với chỉ xóa cookie: trong cấu hình form login hiện tại, Spring Security xử lý việc hủy session và xóa trạng thái xác thực phía server.
+Logout khác với chỉ xóa cookie: với `POST /api/auth/logout` hiện tại, Spring Security xử lý việc hủy session và xóa trạng thái xác thực phía server.
 
 ## 6. Session ID có phải mật khẩu hay thông tin người dùng không?
 
@@ -90,7 +90,7 @@ Các biện pháp liên quan:
 
 ## Kết quả thực hành
 
-- Chưa đăng nhập, truy cập `/hello` bị chuyển sang `/login`.
+- Chưa đăng nhập, truy cập `/hello` nhận `401`. Redirect đến `/login` là hành vi của cấu hình form login mặc định ở ngày đầu, hiện đã được thay bằng JSON login.
 - Đăng nhập thành công thì truy cập được `/hello`.
 - Request của browser có cookie `JSESSIONID`.
 - Xóa cookie của phiên đăng nhập rồi vào `/hello` thì phải đăng nhập lại.
@@ -106,6 +106,6 @@ request.getSession();      // Lấy session hiện có; chưa có thì tạo.
 request.getSession(false); // Lấy session hiện có; chưa có thì trả null.
 ```
 
-Spring Security dùng SecurityContext để quản lý ngữ cảnh bảo mật. Với form login hiện tại, ngữ cảnh được lưu/khôi phục qua HTTP session. Authentication chứa danh tính và authorities; nó không chứa toàn bộ dữ liệu session như `visitCount`.
+Spring Security dùng SecurityContext để quản lý ngữ cảnh bảo mật. Với JSON session login hiện tại, `LoginController` chủ động lưu context qua `HttpSessionSecurityContextRepository`; filter chain khôi phục context ở request sau. Authentication chứa danh tính và authorities; nó không chứa toàn bộ dữ liệu session như `visitCount`.
 
 Controller `/me` chỉ nhận và đọc Authentication do framework cung cấp. Nó không tự đọc cookie hoặc tạo session riêng cho endpoint.

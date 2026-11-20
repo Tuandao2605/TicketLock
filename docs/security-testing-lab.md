@@ -52,7 +52,7 @@ Không lưu mật khẩu, JWT hoặc Session ID thật trong báo cáo.
 - So sánh với `/public/hello` nếu đã triển khai và `/lab/session/status`.
 - Gọi endpoint protected bằng Postman không gửi cookie.
 
-**Đúng:** browser chưa đăng nhập bị chuyển tới login; không được trả dữ liệu người dùng. Với API JSON ở giai đoạn JWT, yêu cầu chưa xác thực trả 401 theo thiết kế. Không mặc định mọi response 302 đều là lỗi.
+**Đúng với code hiện tại:** `/hello` và `/me` chưa xác thực trả `401`, không redirect tới trang backend `/login`. React ở cổng 5173 tự hiển thị form. `/public/hello` và `/lab/session/status` là public.
 
 ### A2. Session không đồng nghĩa đã đăng nhập
 
@@ -72,10 +72,10 @@ Không lưu mật khẩu, JWT hoặc Session ID thật trong báo cáo.
 ### A4. Logout và phiên cũ
 
 - Login bằng tài khoản test, xác nhận `/me` trả đúng user.
-- Logout theo form/luồng Spring Security, gửi CSRF token khi được yêu cầu.
+- Gửi `POST /api/auth/logout` với cookie session, cookie `XSRF-TOKEN` và header `X-XSRF-TOKEN` tương ứng; thành công trả `204`.
 - Thử lại request protected với cookie của phiên trước logout.
 
-**Đúng:** phiên cũ mất quyền truy cập. Xóa cookie thủ công không thay thế kiểm tra logout phía server. Không coi việc mở `/logout` hiện trang xác nhận là đã logout thành công.
+**Đúng:** phiên cũ mất quyền truy cập. Xóa cookie thủ công không thay thế kiểm tra logout phía server. GET `/api/auth/logout` không thực hiện logout; không dùng `/logout` mặc định của bài form login cũ.
 
 ### A5. Timeout và cookie
 

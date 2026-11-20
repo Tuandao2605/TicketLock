@@ -16,5 +16,22 @@ services:
       retries: 10
       start_period: 10s
 
+  redis:
+    image: redis:7.4
+    profiles: ["redis"]
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:-ticketlock_redis_dev}
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:-ticketlock_redis_dev}"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
 volumes:
   postgres_data:
+  redis_data:
