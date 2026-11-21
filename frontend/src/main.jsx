@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
 import { readJson } from './api';
+import JwtLogin from './JwtLogin';
 
 async function getCsrf() {
   const response = await fetch('/api/auth/csrf', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
@@ -141,6 +142,7 @@ function Login() {
           <button disabled={busy}>{busy ? 'Đang đăng nhập…' : 'Đăng nhập'}</button>
         </form>
         <p>Chưa có tài khoản? <a href="/register">Đăng ký</a></p>
+        <p><a href="/jwt-login">Đăng nhập bằng JWT</a></p>
       </>}
       {error && <p role="alert" className="error">{error}</p>}
     </main>
@@ -205,5 +207,5 @@ function Registration() {
 }
 
 createRoot(document.getElementById('root')).render(
-  window.location.pathname === '/register' ? <Registration /> : <Login />,
+  window.location.pathname === '/register' ? <Registration /> : window.location.pathname === '/jwt-login' ? <JwtLogin /> : <Login />,
 );

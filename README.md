@@ -2,7 +2,7 @@
 
 Bài JWT access token, refresh rotation và logout: xem `docs/mini/jwt-access-token-lab.md`.
 Tạo khóa bằng `bash scripts/generate-jwt-keys.sh`, rồi chạy backend với profile
-`jwt`. Redis session luôn bật; React hiện tiếp tục dùng session login.
+`jwt`. Redis session luôn bật; React dùng session tại `/login` và có luồng JWT riêng tại `/jwt-login`.
 Đối chiếu session và JWT trên cùng ứng dụng theo `docs/mini/day-11.md`.
 
 Bài Spring Session Redis: xem `docs/mini/redis-session-lab.md`.
@@ -50,6 +50,8 @@ cấu hình mặc định vẫn là 15 phút.
 Hướng phát triển: nền tảng đặt vé cạnh tranh cao, engine giữ ghế để nghiên cứu concurrency/CPU cache và quy trình thanh toán phân tán bằng Saga, Outbox, Kafka. Xem [thiết kế nâng cao](TICKETLOCK_ADVANCED_DESIGN.md). Đây là kiến trúc dự kiến, chưa phải chức năng đã triển khai.
 Sprint và ticket triển khai Advanced: [backlog](docs/advanced/SPRINT_BACKLOG.md).
 
+
+Trang `/jwt-login` yêu cầu backend bật profile `jwt`; access token và refresh token chỉ lưu trong bộ nhớ tab. Khi API JWT trả 401, frontend xoay refresh token và thử lại một lần. Tải lại trang cần đăng nhập lại; các tab đăng nhập độc lập. Dùng nút đăng xuất để thu hồi token family trên server.
 
 ## Chạy ứng dụng
 
