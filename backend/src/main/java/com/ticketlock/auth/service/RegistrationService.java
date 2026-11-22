@@ -24,11 +24,11 @@ public class RegistrationService {
     public void register(RegisterRequest request) {
         String email = request.email().strip().toLowerCase(Locale.ROOT);
         if (users.existsByEmail(email)) {
-            throw new IllegalArgumentException("Email đã được sử dụng.");
+            throw new IllegalArgumentException("Email này đã được sử dụng. Vui lòng chọn email khác.");
         }
         // BCrypt giới hạn theo byte, không phải số ký tự Unicode.
         if (request.password().getBytes(StandardCharsets.UTF_8).length > 72) {
-            throw new IllegalArgumentException("Mật khẩu không được vượt quá 72 byte UTF-8.");
+            throw new IllegalArgumentException("Mật khẩu không được vượt quá 72 ký tự.");
         }
         users.saveAndFlush(new User(email, encoder.encode(request.password()), Role.CUSTOMER));
     }

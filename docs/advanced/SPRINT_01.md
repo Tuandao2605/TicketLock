@@ -4,7 +4,7 @@
 
 Sprint 1 tạo ranh giới module, đường nâng cấp database, hợp đồng API và môi trường kiểm thử. Đầu ra là nền tảng để bắt đầu Event/Show/Seat ở Sprint 2. Đây là kế hoạch làm việc; các ô chưa đánh dấu không có nghĩa đã được triển khai.
 
-Backlog tổng: [SPRINT_BACKLOG.md](SPRINT_BACKLOG.md) · Thiết kế: [Advanced](../../TICKETLOCK_ADVANCED_DESIGN.md)
+ADR đề xuất: [0001 — Modular monolith](adr/0001-modular-monolith.md) · Backlog tổng: [SPRINT_BACKLOG.md](SPRINT_BACKLOG.md) · Thiết kế: [Advanced](../../TICKETLOCK_ADVANCED_DESIGN.md)
 
 ## Hiện trạng và phạm vi
 

@@ -198,3 +198,52 @@ Các rule `hasRole` đặt trước `anyRequest`. ADMIN không tự kế thừa 
 Khi thử bằng Postman, login JSON kèm CSRF và giữ cookie để gọi endpoint.
 Các bài test phân quyền dùng danh tính giả lập; test JSON login kiểm tra riêng
 luồng xác thực và lưu session.
+
+### Đóng gói Docker
+
+Từ thư mục gốc, build hai image:
+
+```bash
+docker build -t ticketlock-backend:local ./backend
+docker build -t ticketlock-frontend:local ./frontend
+```
+
+Image frontend phục vụ React bằng Nginx và chuyển `/api`, `/me`, `/hello`
+và các endpoint lab tới `http://backend:8080`. Hai container cần chạy trên cùng
+mạng Docker và backend cần có tên mạng `backend`; cấu hình Compose và biến môi
+trường cho server được bổ sung ở bước tiếp theo. Nginx trả `index.html` cho các
+đường dẫn trang React khi tải lại. Không đưa `.env` hoặc khóa JWT vào build context.
+
+### Demo trên laptop với Cloudflare Quick Tunnel
+
+Môi trường này dùng database và volume riêng, không dùng dữ liệu của `compose.yaml`.
+Chỉ dùng dữ liệu giả: ứng dụng còn endpoint lab và cấu hình phát triển. Quick Tunnel
+công khai ứng dụng cho người có URL; không dùng làm production. Không cần domain hay
+tài khoản Cloudflare. URL thay đổi khi tạo lại tunnel.
+
+Tạo `.env.demo` từ `.env.demo.example`, thay cả hai mật khẩu bằng giá trị ngẫu nhiên
+khác nhau, rồi chạy từ thư mục gốc:
+
+```bash
+cp -n .env.demo.example .env.demo
+# Sửa .env.demo bằng trình soạn thảo trước khi chạy.
+docker compose --env-file .env.demo -f compose.demo.yaml up -d --build
+```
+
+Mở `http://localhost:8088` và kiểm tra đăng ký/đăng nhập. Để mở URL công khai:
+
+```bash
+docker compose --env-file .env.demo -f compose.demo.yaml --profile tunnel up -d tunnel
+docker compose --env-file .env.demo -f compose.demo.yaml logs tunnel
+```
+
+Mở địa chỉ `https://...trycloudflare.com` trong log. Dừng toàn bộ bằng:
+
+```bash
+docker compose --env-file .env.demo -f compose.demo.yaml --profile tunnel down
+```
+
+Lệnh này giữ dữ liệu demo. Laptop tắt/ngủ hoặc Docker dừng sẽ ngắt dịch vụ. Không
+chạy cấu hình này cùng backend local nếu cả hai dùng cùng cổng; frontend demo dùng
+cổng 8088. JWT chưa bật trong demo; `/login` dùng session. Không đổi mật khẩu DB
+sau khi đã tạo volume mà không cập nhật user trong PostgreSQL.

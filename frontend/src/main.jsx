@@ -8,15 +8,15 @@ async function getCsrf() {
   const response = await fetch('/api/auth/csrf', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
   if (!response.ok) {
     if (response.status >= 500) {
-      throw new Error('Backend chưa chạy hoặc đang gặp lỗi. Hãy kiểm tra Spring Boot ở cổng 8080.');
+      throw new Error('Hệ thống đang bảo trì hoặc mất kết nối máy chủ. Vui lòng thử lại sau.');
     }
-    throw new Error(`Không lấy được CSRF token (HTTP ${response.status}). Hãy thử lại.`);
+    throw new Error('Phiên bảo mật không hợp lệ. Vui lòng tải lại trang và thử lại.');
   }
   const metadata = await readJson(response);
   const cookie = document.cookie
     .split('; ')
     .find((part) => part.startsWith(`${metadata.cookieName}=`));
-  if (!cookie) throw new Error('Không tìm thấy cookie CSRF. Hãy tải lại trang và thử lại.');
+  if (!cookie) throw new Error('Không tìm thấy phiên bảo mật. Vui lòng làm mới trang và thử lại.');
   return { headerName: metadata.headerName, token: decodeURIComponent(cookie.slice(metadata.cookieName.length + 1)) };
 }
 
@@ -48,15 +48,15 @@ function Login() {
         if (!active) return;
         if (response.status === 401) {
           setUser(null);
-          if (username) setError('Phiên đã hết hạn hoặc tài khoản đã đăng nhập ở nơi khác. Vui lòng đăng nhập lại.');
+          if (username) setError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tiếp tục.');
           return;
         }
-        if (!response.ok) throw new Error('Không kiểm tra được phiên. Hãy kiểm tra backend.');
+        if (!response.ok) throw new Error('Không thể kiểm tra trạng thái đăng nhập. Vui lòng thử lại.');
         const profile = await readJson(response);
         if (active) setUser(profile);
       } catch (failure) {
         if (active && failure.name !== 'AbortError') {
-          setError('Không kiểm tra được phiên. Hãy kiểm tra kết nối backend.');
+          setError('Mất kết nối với máy chủ. Vui lòng kiểm tra lại đường truyền mạng.');
         }
       } finally {
         pending = false;
@@ -88,13 +88,13 @@ function Login() {
         body: JSON.stringify({ email, password }),
       });
       if (response.status === 401) throw new Error('Email hoặc mật khẩu không chính xác.');
-      if (!response.ok) throw new Error('Không thể đăng nhập. Hãy thử lại.');
+      if (!response.ok) throw new Error('Đăng nhập không thành công. Vui lòng kiểm tra lại thông tin.');
       setPassword('');
       const profile = await fetch('/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
-      if (!profile.ok || profile.redirected) throw new Error('Không đọc được thông tin phiên. Hãy thử lại.');
+      if (!profile.ok || profile.redirected) throw new Error('Không thể tải thông tin tài khoản. Vui lòng thử lại.');
       setUser(await readJson(profile));
     } catch (failure) {
-      setError(failure instanceof TypeError ? 'Không kết nối được backend.' : failure.message);
+      setError(failure instanceof TypeError ? 'Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại mạng.' : failure.message);
     } finally {
       setBusy(false);
     }
@@ -109,7 +109,7 @@ function Login() {
       const response = await fetch('/api/auth/logout', {
         method: 'POST', credentials: 'same-origin', headers: { [csrf.headerName]: csrf.token },
       });
-      if (!response.ok) throw new Error('Chưa đăng xuất được. Hãy thử lại.');
+      if (!response.ok) throw new Error('Đăng xuất không thành công. Vui lòng thử lại.');
       setUser(null);
     } catch (failure) {
       setError(failure.message);
@@ -164,7 +164,7 @@ function Registration() {
     setSuccess(false);
     try {
       if (new TextEncoder().encode(password).length > 72) {
-        throw new Error('Mật khẩu tối đa 72 byte UTF-8.');
+        throw new Error('Mật khẩu tối đa 72 ký tự.');
       }
       const csrf = await getCsrf();
       const response = await fetch('/api/auth/register', {
@@ -174,12 +174,12 @@ function Registration() {
         body: JSON.stringify({ email, password }),
       });
       const data = await readJson(response);
-      if (!response.ok) throw new Error(data.message || 'Đăng ký thất bại. Hãy thử lại.');
+      if (!response.ok) throw new Error(data.message || 'Đăng ký không thành công. Vui lòng thử lại.');
       setMessage(data.message);
       setSuccess(true);
       setPassword('');
     } catch (error) {
-      setMessage(error instanceof TypeError ? 'Không kết nối được server. Kiểm tra backend đã chạy.' : error.message);
+      setMessage(error instanceof TypeError ? 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.' : error.message);
     } finally {
       setBusy(false);
     }
@@ -197,7 +197,7 @@ function Registration() {
         <label htmlFor="password">Mật khẩu</label>
         <input id="password" type="password" autoComplete="new-password" required minLength={8} maxLength={72}
           value={password} onChange={(event) => setPassword(event.target.value)} />
-        <small>Từ 8 ký tự, tối đa 72 byte UTF-8.</small>
+        <small>Độ dài từ 8 đến 72 ký tự.</small>
         <button disabled={busy}>{busy ? 'Đang đăng ký…' : 'Đăng ký'}</button>
       </form>
       {message && <p role={success ? 'status' : 'alert'} className={success ? 'success' : 'error'}>{message}</p>}

@@ -81,7 +81,7 @@ Ticket DONE khi:
 
 ## Sprint 1 — Chuẩn bị modular monolith
 
-Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](SPRINT_01.md).
+Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](SPRINT_01.md). ADR đề xuất: [0001 — Modular monolith](adr/0001-modular-monolith.md).
 
 **Mục tiêu:** xây nền để phát triển domain mà không tách service quá sớm.
 

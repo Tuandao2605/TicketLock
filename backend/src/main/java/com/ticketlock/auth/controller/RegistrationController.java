@@ -26,7 +26,7 @@ public class RegistrationController {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, String>> invalidInput() {
-        return ResponseEntity.badRequest().body(Map.of("message", "Nhập email hợp lệ và mật khẩu từ 8 đến 72 ký tự (tối đa 72 byte UTF-8)."));
+        return ResponseEntity.badRequest().body(Map.of("message", "Vui lòng nhập email hợp lệ và mật khẩu từ 8 đến 72 ký tự."));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -36,6 +36,6 @@ public class RegistrationController {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> duplicateEmail() {
-        return ResponseEntity.status(409).body(Map.of("message", "Không thể tạo tài khoản. Email có thể đã được sử dụng."));
+        return ResponseEntity.status(409).body(Map.of("message", "Email này đã được đăng ký. Vui lòng sử dụng email khác hoặc đăng nhập."));
     }
 }

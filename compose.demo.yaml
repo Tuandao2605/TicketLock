@@ -1,0 +1,64 @@
+# Môi trường demo riêng, không dùng database hoặc volume của compose.yaml.
+name: ticketlock-demo
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ticketlock
+      POSTGRES_USER: ticketlock_app
+      POSTGRES_PASSWORD: ${DEMO_DB_PASSWORD:?Dat DEMO_DB_PASSWORD trong .env.demo}
+    volumes:
+      - demo_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketlock_app -d ticketlock"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7.4
+    environment:
+      REDISCLI_AUTH: ${DEMO_REDIS_PASSWORD:?Dat DEMO_REDIS_PASSWORD trong .env.demo}
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${DEMO_REDIS_PASSWORD:?Dat DEMO_REDIS_PASSWORD trong .env.demo}"]
+    volumes:
+      - demo_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  backend:
+    build: ./backend
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ticketlock
+      DB_USERNAME: ticketlock_app
+      DB_PASSWORD: ${DEMO_DB_PASSWORD:?Dat DEMO_DB_PASSWORD trong .env.demo}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${DEMO_REDIS_PASSWORD:?Dat DEMO_REDIS_PASSWORD trong .env.demo}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:8088:80"
+    depends_on:
+      - backend
+
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: [tunnel]
+    command: ["tunnel", "--no-autoupdate", "--url", "http://frontend:80"]
+    depends_on:
+      - frontend
+
+volumes:
+  demo_postgres:
+  demo_redis:

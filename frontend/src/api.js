@@ -1,10 +1,10 @@
 export async function readJson(response) {
   if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
-    throw new Error('Server trả HTML thay vì JSON. Hãy kiểm tra backend mới đã chạy và proxy Vite đang hoạt động.');
+    throw new Error('Định dạng phản hồi từ máy chủ không hợp lệ. Vui lòng thử lại sau.');
   }
   try {
     return await response.json();
   } catch {
-    throw new Error('Response JSON từ server không hợp lệ.');
+    throw new Error('Dữ liệu từ máy chủ không đúng định dạng.');
   }
 }
