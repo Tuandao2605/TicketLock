@@ -2,7 +2,7 @@
 
 Bài JWT access token, refresh rotation và logout: xem `docs/mini/jwt-access-token-lab.md`.
 Tạo khóa bằng `bash scripts/generate-jwt-keys.sh`, rồi chạy backend với profile
-`jwt`. Redis session luôn bật; React dùng session tại `/login` và có luồng JWT riêng tại `/jwt-login`.
+`jwt`. React dùng session tại `/login`; JWT API dành cho client mobile.
 Đối chiếu session và JWT trên cùng ứng dụng theo `docs/mini/day-11.md`.
 
 Bài Spring Session Redis: xem `docs/mini/redis-session-lab.md`.
@@ -51,7 +51,7 @@ Hướng phát triển: nền tảng đặt vé cạnh tranh cao, engine giữ g
 Sprint và ticket triển khai Advanced: [backlog](docs/advanced/SPRINT_BACKLOG.md).
 
 
-Trang `/jwt-login` yêu cầu backend bật profile `jwt`; access token và refresh token chỉ lưu trong bộ nhớ tab. Khi API JWT trả 401, frontend xoay refresh token và thử lại một lần. Tải lại trang cần đăng nhập lại; các tab đăng nhập độc lập. Dùng nút đăng xuất để thu hồi token family trên server.
+Client mobile dùng JWT API khi backend bật profile `jwt`. Dự án chưa có ứng dụng mobile; hợp đồng tích hợp được ghi tại `docs/mini/mobile-jwt.md`. Website React dùng session, kể cả khi mở bằng trình duyệt điện thoại.
 
 ## Chạy ứng dụng
 

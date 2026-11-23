@@ -4,7 +4,7 @@
 
 ## Bối cảnh
 
-TicketLock hiện là một ứng dụng Spring Boot. PostgreSQL lưu tài khoản và refresh token; Redis lưu HTTP session. React dùng session tại `/login` và có trang thử JWT riêng tại `/jwt-login`; JWT API chỉ bật với profile `jwt`. Event, Inventory và Booking chưa được triển khai. M1 cần kiểm chứng tính đúng đắn khi nhiều người tranh ghế trước khi thêm hàng đợi hay tách service.
+TicketLock hiện là một ứng dụng Spring Boot. PostgreSQL lưu tài khoản và refresh token; Redis lưu HTTP session. React dùng session tại `/login`; JWT API dành cho client mobile và chỉ bật với profile `jwt`. Event, Inventory và Booking chưa được triển khai. M1 cần kiểm chứng tính đúng đắn khi nhiều người tranh ghế trước khi thêm hàng đợi hay tách service.
 
 ## Quyết định
 
