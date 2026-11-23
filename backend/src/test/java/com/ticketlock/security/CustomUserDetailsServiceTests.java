@@ -4,7 +4,9 @@ import com.ticketlock.SecurityConfig;
 import com.ticketlock.user.entity.Role;
 import com.ticketlock.user.entity.User;
 import com.ticketlock.user.repository.UserRepository;
+import com.ticketlock.user.service.UserAccountsService;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -18,12 +20,18 @@ import static org.mockito.Mockito.*;
 class CustomUserDetailsServiceTests {
 
     private final UserRepository repository = mock(UserRepository.class);
-    private final CustomUserDetailsService service = new CustomUserDetailsService(repository);
+    private final CustomUserDetailsService service = new CustomUserDetailsService(new UserAccountsService(repository));
 
     @Test
     void authenticatesEmailAndBcryptPasswordAndRejectsWrongPassword() {
         var encoder = new SecurityConfig().passwordEncoder();
-        var account = new User("customer@example.test", encoder.encode("test-password"), Role.CUSTOMER);
+        var account = mock(User.class);
+        UUID userId = UUID.randomUUID();
+        when(account.getId()).thenReturn(userId);
+        when(account.getEmail()).thenReturn("customer@example.test");
+        when(account.getPasswordHash()).thenReturn(encoder.encode("test-password"));
+        when(account.getRole()).thenReturn(Role.CUSTOMER);
+        when(account.isEnabled()).thenReturn(true);
         when(repository.findByEmail(account.getEmail())).thenReturn(Optional.of(account));
         var provider = new DaoAuthenticationProvider(service);
         provider.setPasswordEncoder(encoder);
@@ -32,7 +40,7 @@ class CustomUserDetailsServiceTests {
                 account.getEmail(), "test-password"));
 
         assertTrue(result.isAuthenticated());
-        assertEquals(account.getEmail(), result.getName());
+        assertEquals(userId.toString(), result.getName());
         assertTrue(result.getAuthorities().stream()
                 .anyMatch(authority -> authority.getAuthority().equals("ROLE_CUSTOMER")));
         assertThrows(BadCredentialsException.class, () -> provider.authenticate(
@@ -49,6 +57,7 @@ class CustomUserDetailsServiceTests {
     @Test
     void rejectsDisabledAccount() {
         var account = mock(User.class);
+        when(account.getId()).thenReturn(UUID.randomUUID());
         when(account.getEmail()).thenReturn("disabled@example.test");
         when(account.getPasswordHash()).thenReturn("unused-hash");
         when(account.getRole()).thenReturn(Role.CUSTOMER);

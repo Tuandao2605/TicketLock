@@ -18,7 +18,7 @@ TicketLock hiện là một ứng dụng Spring Boot. PostgreSQL lưu tài kho�
 | Redis | HTTP session và index principal; không chứa booking/reservation |
 | Frontend | React dùng session; app mobile chưa có, JWT API dùng profile `jwt` |
 
-`SecurityConfig` ở package gốc. Hiện `RefreshTokenService` truy cập `UserRepository` trực tiếp và `UserSecurity` cũng dùng repository; các rule boundary dưới đây là **quy tắc cho code mới và mục tiêu refactor**, không khẳng định code cũ đã tuân thủ. ADV-001 chưa refactor code.
+`SecurityConfig` ở package gốc. Sau refactor, `AccessTokenService`, `RegistrationService` và `CustomUserDetailsService` gọi interface nội bộ `UserAccounts`; implementation thuộc User truy cập `UserRepository`. `RefreshToken` lưu UUID `userId` thay cho liên kết JPA đến entity User. `UserSecurity` truy cập repository để kiểm tra ownership User, không tự nó là vi phạm giữa hai module.
 
 ## Quyết định
 
@@ -28,7 +28,9 @@ M1 dùng một ứng dụng, một lần deploy và một PostgreSQL. Tổ chứ
 flowchart LR
   Client[React / API client] --> Security[Spring Security]
   subgraph App[Spring Boot — một deploy]
-    Security --> Auth[Auth / User]
+    Security --> Auth[Auth]
+    Security --> User[User]
+    Auth --> User
     Security --> Event[Event]
     Security --> Inventory[Inventory]
     Security --> Booking[Booking]
@@ -36,6 +38,7 @@ flowchart LR
     Inventory --> Event
   end
   Auth --> PG[(PostgreSQL)]
+  User --> PG
   Event --> PG
   Inventory --> PG
   Booking --> PG
@@ -48,20 +51,21 @@ Mũi tên giữa module thể hiện lời gọi qua interface được công b�
 
 | Module | Dữ liệu và trách nhiệm | Interface dự kiến |
 |---|---|---|
-| Auth / User | User, role, password hash, refresh token; xác thực danh tính | Cung cấp danh tính đã xác thực và tra cứu user cần thiết |
+| User | User, email, role, trạng thái, hồ sơ và password hash | Interface tra cứu danh tính và thông tin xác thực cần thiết cho Auth; không trả hash qua HTTP |
+| Auth | Xác thực, session, access/refresh token và vòng đời refresh family | Login, refresh, logout; gọi interface User để lấy thông tin tài khoản |
 | Event | Event, Show, layout Seat; quản lý publish | Kiểm tra show có thể đặt và lấy danh sách ghế trong layout |
 | Inventory | ShowSeat, trạng thái ghế theo show, reservation, deadline, version | Hold, đọc, release, confirm reservation |
 | Booking | Booking và liên kết reservation | Tạo, đọc booking theo owner; gọi Inventory qua interface |
 | Payment (sau M1) | Payment operation và kết quả thanh toán | Charge, query, refund |
 | Ticket (sau M1) | Vé và check-in | Phát vé, tra cứu, check-in |
 
-Event mô tả sự kiện; Show là một suất diễn cụ thể. Seat thuộc layout của Event; ShowSeat là trạng thái của một ghế trong một Show. Một layout có thể phục vụ nhiều show mà trạng thái ghế độc lập. Giá và điều kiện thay đổi layout cần được chốt trước khi các ticket schema tương ứng được triển khai.
+Event mô tả sự kiện; Show là một suất diễn cụ thể. Seat thuộc layout của Event; ShowSeat là trạng thái của một ghế trong một Show. Một layout có thể phục vụ nhiều show mà trạng thái ghế độc lập. Với M1, một khi Show đã mở bán thì sơ đồ ghế của suất đó bị khóa: không thêm, xóa, đổi định danh hay bố trí ghế. Nếu layout được chia sẻ, thay đổi layout không được làm thay đổi các Show đã mở bán; cần snapshot/version hoặc cơ chế tương đương. Ngừng bán không tự mở khóa lại; thay đổi sau đó cần quy trình riêng xử lý hold/vé và chưa thuộc M1. Giá từng ghế và loại tiền được server chốt và lưu snapshot cùng transaction giữ ghế thành công. Trong thời gian hold hợp lệ, checkout dùng snapshot đó, kể cả khi giá niêm yết thay đổi; hold hết hạn hoặc bị hủy không giữ giá cho lần đặt mới. Giá hiển thị trước hold có thể đã thay đổi; quy trình thông báo/xác nhận giá thực tế trước thanh toán sẽ được thiết kế tại ADV-003.
 
 ## Trust boundary
 
 - Request body, UUID, role, giá và owner do client gửi đều là đầu vào chưa tin cậy. Server lấy principal từ `Authentication` đã xác thực; quyền và ownership được kiểm tra phía server.
 - Session chain sử dụng session cookie và CSRF cho các thao tác thay đổi. Với profile `jwt`, `/api/token/**` và `/api/stateless/**` dùng chain stateless riêng; không mặc định mọi `/api/**` nhận bearer JWT.
-- Hiện tại session principal có tên là email; JWT `sub` là UUID. Khi kết nối JWT tới nghiệp vụ mới phải chuyển cả hai sang một định danh user nội bộ đáng tin cậy, không giả định hai principal có cùng định dạng.
+- Session principal và JWT `sub` dùng UUID user sau khi xác thực; email vẫn dùng để đăng nhập và được đọc từ User khi hiển thị. Session cũ chứa principal email cần đăng nhập lại sau deploy; trước cutover cần kế hoạch chấm dứt hoặc chuyển đổi các phiên cũ để tránh bỏ sót giới hạn concurrent session.
 - Redis lưu session, không sở hữu reservation. Logout hoặc hết session không tự hủy hold hay booking.
 
 ## Transaction và invariant M1
@@ -84,7 +88,7 @@ Ví dụ: customer gửi danh sách seat ID để hold. Security xác thực pri
 - Client đổi role trong body không thay quyền: quyền đến từ principal đã xác thực.
 - Hai request tranh cùng ghế không được cùng tạo hold hợp lệ; phải kiểm thử trên PostgreSQL thật ở ADV-012.
 - Một ghế lỗi trong nhóm phải rollback cả nhóm; kiểm thử ở ADV-009/ADV-012.
-- Định danh principal thống nhất, giá snapshot và chính sách thay đổi layout cần được cụ thể hóa trong API/schema ticket trước khi code. ADR này là quyết định thiết kế, chưa phải bằng chứng các invariant đã được triển khai.
+- Principal UUID, khóa layout và chốt giá khi hold đã được chọn; chi tiết xác nhận giá, phụ phí và schema cần hoàn thiện trong ticket API/booking. ADR này là quyết định thiết kế, chưa phải bằng chứng các invariant đã được triển khai.
 
 ## Ba tình huống review thiết kế
 
@@ -94,4 +98,8 @@ Ví dụ: customer gửi danh sách seat ID để hold. Security xác thực pri
 | Hai request giữ cùng một ghế | DB là nguồn sự thật; transaction khóa/cập nhật có điều kiện để chỉ một hold hợp lệ thắng. | ADV-009 và ADV-012 kiểm thử đồng thời trên PostgreSQL. |
 | Một ghế trong nhóm đã bị giữ | Rollback cả transaction; không lưu hold thành công một phần. | ADV-009 và ADV-012 kiểm tra trạng thái toàn bộ nhóm. |
 
-Đây là review thiết kế, chưa chứng minh bằng test nghiệp vụ vì các module giữ ghế chưa tồn tại. Các điểm cần quyết định trước implementation: cách ánh xạ session email/JWT UUID sang user ID, snapshot giá và quy tắc đổi layout đã được ghi ở trên.
+Đây là review thiết kế, chưa chứng minh bằng test nghiệp vụ vì các module giữ ghế chưa tồn tại. Chi tiết xác nhận khi giá thay đổi trước hold và chính sách phí vẫn cần được mô tả trong ADV-003 trước implementation.
+
+## Hướng refactor Auth–User
+
+User công bố interface tra cứu cần thiết, ví dụ `UserQuery`; Auth gọi interface này thay vì truy cập repository User trực tiếp. Interface nội bộ chỉ cung cấp dữ liệu tối thiểu; password hash chỉ được dùng nội bộ để xác thực, không trả qua API hay log. Registration cần một use case tạo user do User sở hữu, với phân định rõ transaction và xử lý email trùng. `RefreshToken` lưu `userId` trên cột `user_id` hiện có. Foreign key hiện có trong database cũ không bị xóa bởi refactor này; schema tạo mới cần migration ADV-002 quy định và kiểm tra foreign key, vì mapping UUID không tự tạo foreign key như quan hệ JPA trước đây. Việc tách module không yêu cầu tách service/deploy trong M1.

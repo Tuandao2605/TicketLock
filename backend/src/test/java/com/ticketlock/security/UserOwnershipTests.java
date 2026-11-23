@@ -31,15 +31,15 @@ class UserOwnershipTests {
     void customerCanReadSelfButNotAnotherUserAndNeverReceivesPasswordHash() throws Exception {
         User owner = account(Role.CUSTOMER);
         User other = account(Role.CUSTOMER);
-        mvc.perform(get("/api/users/me").with(user(owner.getEmail()).roles("CUSTOMER")))
+        mvc.perform(get("/api/users/me").with(user(owner.getId().toString()).roles("CUSTOMER")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(owner.getId().toString()))
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
-        mvc.perform(get("/api/users/" + owner.getId()).with(user(owner.getEmail()).roles("CUSTOMER")))
+        mvc.perform(get("/api/users/" + owner.getId()).with(user(owner.getId().toString()).roles("CUSTOMER")))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.email").value(owner.getEmail()))
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
-        mvc.perform(get("/api/users/" + other.getId()).with(user(owner.getEmail()).roles("CUSTOMER")))
+        mvc.perform(get("/api/users/" + other.getId()).with(user(owner.getId().toString()).roles("CUSTOMER")))
                 .andExpect(status().isForbidden());
-        mvc.perform(get("/api/users/" + UUID.randomUUID()).with(user(owner.getEmail()).roles("CUSTOMER")))
+        mvc.perform(get("/api/users/" + UUID.randomUUID()).with(user(owner.getId().toString()).roles("CUSTOMER")))
                 .andExpect(status().isForbidden());
     }
 
@@ -47,7 +47,7 @@ class UserOwnershipTests {
     void adminDoesNotAutomaticallyOwnOtherProfiles() throws Exception {
         User admin = account(Role.ADMIN);
         User customer = account(Role.CUSTOMER);
-        mvc.perform(get("/api/users/" + customer.getId()).with(user(admin.getEmail()).roles("ADMIN")))
+        mvc.perform(get("/api/users/" + customer.getId()).with(user(admin.getId().toString()).roles("ADMIN")))
                 .andExpect(status().isForbidden());
     }
 

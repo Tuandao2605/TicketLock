@@ -20,8 +20,12 @@ public class UserSecurity {
             return false;
         }
         // Đối chiếu với tài khoản của principal, không tin UUID từ client.
-        return users.findByEmail(authentication.getName())
-                .filter(user -> user.isEnabled() && user.getId().equals(userId))
-                .isPresent();
+        try {
+            UUID principalId = UUID.fromString(authentication.getName());
+            return principalId.equals(userId) && users.findById(principalId)
+                    .filter(user -> user.isEnabled()).isPresent();
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
     }
 }

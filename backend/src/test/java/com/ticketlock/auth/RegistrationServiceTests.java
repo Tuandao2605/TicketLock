@@ -6,6 +6,7 @@ import com.ticketlock.auth.service.RegistrationService;
 import com.ticketlock.user.entity.Role;
 import com.ticketlock.user.entity.User;
 import com.ticketlock.user.repository.UserRepository;
+import com.ticketlock.user.service.UserAccountsService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -16,7 +17,7 @@ class RegistrationServiceTests {
     private final UserRepository users = mock(UserRepository.class);
     private final org.springframework.security.crypto.password.PasswordEncoder encoder =
             new SecurityConfig().passwordEncoder();
-    private final RegistrationService service = new RegistrationService(users, encoder);
+    private final RegistrationService service = new RegistrationService(new UserAccountsService(users), encoder);
 
     @Test
     void createsCustomerWithNormalizedEmailAndHashedPassword() {

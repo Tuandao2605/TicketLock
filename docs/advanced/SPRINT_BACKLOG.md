@@ -88,7 +88,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](SPRIN
 ### ADV-001 — ADR kiến trúc, module và trust boundary
 
 - **P0 · M · Phụ thuộc:** không.
-- **Quyết định:** Dùng modular monolith một deploy; Event sở hữu layout, Inventory sở hữu trạng thái ghế theo show; giao tiếp qua service interface.
+- **Quyết định:** Dùng modular monolith một deploy; Auth và User tách module; principal session/JWT là UUID. Event sở hữu layout, Inventory sở hữu trạng thái ghế; khóa sơ đồ sau mở bán và chốt giá khi hold thành công. Giao tiếp qua service interface.
 - **Phạm vi:** chốt module `auth`, `event`, `inventory`, `booking`, `payment`, `ticket`;
   từng module chia controller/dto/mapper/entity/repository/service theo nhu cầu.
   Giai đoạn đầu một deploy; không để controller gọi repository module khác.
@@ -135,7 +135,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](SPRIN
 - **Phạm vi:** event là nội dung sự kiện, show là một suất có thời gian/địa điểm và
   sơ đồ ghế riêng; DRAFT/PUBLISHED/CANCELLED; thời gian dùng Instant/UTC trong backend.
 - **Nghiệm thu:** không publish show có thời gian hoặc dữ liệu bắt buộc sai; reservation
-  gắn showId; migration và DTO không trả entity trực tiếp; không sửa sơ đồ đã bán tùy tiện.
+  gắn showId; migration và DTO không trả entity trực tiếp; sau khi mở bán không thêm, xóa, đổi định danh hay bố trí ghế của Show, kể cả thay đổi gián tiếp qua layout dùng chung.
 
 ### ADV-006 — Ghế và trạng thái hiện tại theo show
 
@@ -149,7 +149,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](SPRIN
 ### ADV-007 — API quản trị và đọc sơ đồ ghế
 
 - **P0 · M · Phụ thuộc:** ADV-003, ADV-005, ADV-006.
-- **Quyết định:** Tách API quản trị ADMIN và API đọc công khai; chỉ trả show đã publish và snapshot không chứa owner.
+- **Quyết định:** Tách API quản trị ADMIN và API đọc công khai; chỉ trả show đã publish và snapshot không chứa owner; layout version/snapshot không làm thay đổi Show đã mở bán.
 - **Phạm vi:** ADMIN tạo/publish show; public xem show PUBLISHED; snapshot ghế có thời
   điểm/version và không công bố danh tính người giữ ghế.
 - **Nghiệm thu:** CUSTOMER không sửa show; DRAFT không lộ qua public API; snapshot không
@@ -173,9 +173,9 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](SPRIN
 - **P0 · L · Phụ thuộc:** ADV-006, ADV-007.
 - **Quyết định:** Dùng transaction PostgreSQL và khóa ShowSeat theo thứ tự ID tăng dần; mặc định hold 10 phút, giới hạn nhóm bằng cấu hình.
 - **Phạm vi:** giữ 1..N ghế trong 10 phút, giới hạn N được cấu hình; khóa hàng theo thứ
-  tự ổn định hoặc conditional update tương đương; không gọi provider trong transaction.
+  tự ổn định hoặc conditional update tương đương; lưu snapshot giá từng ghế và currency do server xác định trong cùng transaction; không gọi provider trong transaction.
 - **Nghiệm thu:** nhiều request cùng ghế chỉ một hold hợp lệ thắng; thiếu một ghế thì
-  cả nhóm rollback; seat trùng/sai show bị từ chối; response chỉ thành công sau commit.
+  cả nhóm rollback; seat trùng/sai show bị từ chối; response chỉ thành công sau commit. Giá niêm yết đổi sau hold không đổi snapshot; quy trình giá đổi trước hold và xác nhận thanh toán được chốt ở ADV-003.
 
 ### ADV-010 — Expire, release và confirm có điều kiện
 
@@ -422,7 +422,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](SPRIN
 - **Quyết định:** Dùng provider giả lập có charge/refund/query và operation ID bền; timeout giữ UNKNOWN đến khi đối soát.
 - **Phạm vi:** provider giả lập charge/refund/query, operation ID bền và idempotency;
   giả lập success/failure/delay/timeout sau charge; tiền dùng minor units + currency,
-  số tiền lấy từ snapshot giá server (bổ sung migration giá nếu chưa có).
+  số tiền lấy từ snapshot lúc hold do server lưu (bổ sung migration giá nếu chưa có); không tin giá client gửi.
 - **Nghiệm thu:** cùng operation không charge hai lần; không gọi provider trong DB
   transaction kéo dài; crash sau provider success trước local save được query/reconcile;
   timeout giữ UNKNOWN/PENDING thay vì khẳng định thất bại.

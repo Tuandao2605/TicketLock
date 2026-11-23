@@ -51,8 +51,11 @@ Chốt ai sở hữu dữ liệu và ai được gọi ai trước khi tạo Eve
 ### Quyết định triển khai
 
 - Một ứng dụng Spring Boot và một PostgreSQL cho M1; giao tiếp giữa module qua service interface.
-- Event sở hữu Event, Show và layout Seat; Inventory sở hữu ShowSeat, reservation và trạng thái giữ ghế. Booking sở hữu booking; auth/user sở hữu danh tính và refresh token.
+- Event sở hữu Event, Show và layout Seat; Inventory sở hữu ShowSeat, reservation và trạng thái giữ ghế. Booking sở hữu booking; User sở hữu tài khoản/role/password hash, Auth sở hữu xác thực/session/refresh token và gọi interface User.
 - Hold hết hạn khi `now >= deadline` theo đồng hồ server; logout không giải phóng hold. Transaction M1 nằm trong một database.
+- Session principal và JWT `sub` dùng UUID; email dùng để login/hiển thị. Các phiên email cũ cần cutover an toàn và đăng nhập lại.
+- Đã chọn A: khóa sơ đồ ghế của Show sau khi mở bán; ngừng bán không tự mở khóa. Layout dùng chung không được làm thay đổi Show đã mở bán.
+- Giá được chốt lúc giữ ghế thành công: server lưu snapshot giá và currency trong cùng transaction, checkout dùng snapshot khi hold còn hợp lệ. Quy trình xử lý giá thay đổi trước hold sẽ được thiết kế ở ADV-003.
 - ADR ghi các quyết định này cùng lý do và hệ quả; thay đổi phải cập nhật ADR và các ticket liên quan.
 
 ### Việc cần làm
@@ -60,7 +63,7 @@ Chốt ai sở hữu dữ liệu và ai được gọi ai trước khi tạo Eve
 - [x] Kiểm kê package, endpoint, bảng và nơi lưu session thực tế; ghi phần nào đã tồn tại.
 - [x] Viết `docs/advanced/adr/0001-modular-monolith.md` theo các mục: bối cảnh, quyết định, phương án đã cân nhắc, hệ quả và câu hỏi mở.
 - [x] Mô tả sơ đồ một backend/deploy, PostgreSQL và Redis; ghi rõ Kafka, service tách riêng và engine mới là giai đoạn sau.
-- [x] Lập bảng ownership dự kiến: auth/user → user, role, credentials và refresh; event → event/show metadata; inventory → trạng thái ghế và reservation; booking → booking/Saga sau này; payment → payment operation; ticket → ticket/check-in. Show/seat layout và current seat state cần chỉ rõ module sở hữu duy nhất trước khi tạo schema.
+- [x] Lập bảng ownership dự kiến: user → user, role và password hash; auth → xác thực, session và refresh; event → event/show metadata; inventory → trạng thái ghế và reservation; booking → booking/Saga sau này; payment → payment operation; ticket → ticket/check-in. Show/seat layout và current seat state cần chỉ rõ module sở hữu duy nhất trước khi tạo schema.
 - [x] Chốt cách module gọi qua service/public interface. Controller không gọi trực tiếp repository của module khác; dependency giữa module không được tạo vòng lặp.
 - [x] Ghi trust boundary: lấy user từ `Authentication`; không tin `ownerId`, giá hoặc role trong request; session cookie và bearer JWT đi qua chain tương ứng.
 - [x] Ghi invariant: một show-seat có tối đa một hold hợp lệ; giữ nhóm ghế thành công toàn bộ hoặc không ghế nào; confirm/release phải kiểm tra reservation/version/deadline; chỉ trả thành công sau commit bền.
@@ -81,7 +84,7 @@ Chốt ai sở hữu dữ liệu và ai được gọi ai trước khi tạo Eve
 2. Vẽ luồng request từ client → filter chain → controller → service → repository; đánh dấu Redis chỉ lưu session, PostgreSQL lưu user/refresh.
 3. Viết bảng module ownership và các invariant vào ADR; sau đó tự review theo ba tình huống ở phần nghiệm thu.
 
-**Tiến độ:** [ADR 0001](adr/0001-modular-monolith.md) đã có sơ đồ, bảng ownership, kiểm kê code và ba tình huống tự review. Ticket đang chờ review quyết định và thống nhất các điểm mở; chưa đánh dấu DONE hay khẳng định invariant nghiệp vụ đã được kiểm thử.
+**Tiến độ:** [ADR 0001](adr/0001-modular-monolith.md) đã có sơ đồ, bảng ownership, kiểm kê code và ba tình huống tự review. Ba quyết định UUID, khóa sơ đồ sau mở bán và snapshot giá lúc hold đã được chọn; ticket vẫn chờ review tổng thể và làm rõ quy trình giá/phí trong ADV-003; chưa đánh dấu DONE hay khẳng định invariant nghiệp vụ đã được kiểm thử.
 
 **Bằng chứng hoàn thành:** link ADR, sơ đồ, bảng ownership và nội dung review trong PR/tài liệu.
 

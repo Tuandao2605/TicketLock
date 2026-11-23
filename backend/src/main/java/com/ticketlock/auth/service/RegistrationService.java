@@ -1,9 +1,7 @@
 package com.ticketlock.auth.service;
 
 import com.ticketlock.auth.dto.RegisterRequest;
-import com.ticketlock.user.entity.Role;
-import com.ticketlock.user.entity.User;
-import com.ticketlock.user.repository.UserRepository;
+import com.ticketlock.user.api.UserAccounts;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,10 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class RegistrationService {
-    private final UserRepository users;
+    private final UserAccounts users;
     private final PasswordEncoder encoder;
 
-    public RegistrationService(UserRepository users, PasswordEncoder encoder) {
+    public RegistrationService(UserAccounts users, PasswordEncoder encoder) {
         this.users = users;
         this.encoder = encoder;
     }
@@ -23,13 +21,10 @@ public class RegistrationService {
     @Transactional
     public void register(RegisterRequest request) {
         String email = request.email().strip().toLowerCase(Locale.ROOT);
-        if (users.existsByEmail(email)) {
-            throw new IllegalArgumentException("Email này đã được sử dụng. Vui lòng chọn email khác.");
-        }
         // BCrypt giới hạn theo byte, không phải số ký tự Unicode.
         if (request.password().getBytes(StandardCharsets.UTF_8).length > 72) {
             throw new IllegalArgumentException("Mật khẩu không được vượt quá 72 ký tự.");
         }
-        users.saveAndFlush(new User(email, encoder.encode(request.password()), Role.CUSTOMER));
+        users.createCustomer(email, encoder.encode(request.password()));
     }
 }

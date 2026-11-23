@@ -25,8 +25,14 @@ public class UserService {
 
     @PreAuthorize("isAuthenticated()")
     public UserResponse currentProfile() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return users.findByEmail(email)
+        String principal = SecurityContextHolder.getContext().getAuthentication().getName();
+        UUID userId;
+        try {
+            userId = UUID.fromString(principal);
+        } catch (IllegalArgumentException exception) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
+        return users.findById(userId)
                 .filter(user -> user.isEnabled())
                 .map(mapper::toResponse)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));

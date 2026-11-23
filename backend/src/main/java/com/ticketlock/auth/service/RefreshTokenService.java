@@ -3,7 +3,8 @@ package com.ticketlock.auth.service;
 import com.ticketlock.auth.dto.TokenResponse;
 import com.ticketlock.auth.entity.RefreshToken;
 import com.ticketlock.auth.repository.RefreshTokenRepository;
-import com.ticketlock.user.entity.User;
+import com.ticketlock.user.api.UserAccounts;
+import com.ticketlock.user.api.UserAccounts.Account;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
@@ -25,25 +26,27 @@ public class RefreshTokenService {
 
     private final RefreshTokenRepository tokens;
     private final AccessTokenService accessTokens;
+    private final UserAccounts users;
     private final Duration refreshTtl;
 
-    public RefreshTokenService(RefreshTokenRepository tokens, AccessTokenService accessTokens,
+    public RefreshTokenService(RefreshTokenRepository tokens, AccessTokenService accessTokens, UserAccounts users,
             @Value("${ticketlock.jwt.refresh-ttl}") Duration refreshTtl) {
         if (refreshTtl.isNegative() || refreshTtl.isZero() || refreshTtl.compareTo(Duration.ofDays(30)) > 0) {
             throw new IllegalArgumentException("Refresh token TTL phải lớn hơn 0 và không quá 30 ngày.");
         }
         this.tokens = tokens;
         this.accessTokens = accessTokens;
+        this.users = users;
         this.refreshTtl = refreshTtl;
     }
 
     @Transactional
-    public TokenResponse startFamily(User user) {
+    public TokenResponse startFamily(Account user) {
         Instant now = Instant.now();
         UUID familyId = UUID.randomUUID();
         Instant expiresAt = now.plus(refreshTtl);
         String rawToken = newRawToken();
-        tokens.save(new RefreshToken(hash(rawToken), familyId, user, now, expiresAt));
+        tokens.save(new RefreshToken(hash(rawToken), familyId, user.id(), now, expiresAt));
         return response(user, rawToken, expiresAt, now);
     }
 
@@ -61,16 +64,16 @@ public class RefreshTokenService {
         }
         if (old.getRevokedAt() != null || !old.getExpiresAt().isAfter(now)) return Optional.empty();
 
-        User user = old.getUser();
-        if (!user.isEnabled()) {
+        var user = users.findById(old.getUserId());
+        if (user.isEmpty() || !user.get().enabled()) {
             tokens.revokeFamily(old.getFamilyId(), now);
             return Optional.empty();
         }
 
         old.markUsed(now);
         String replacement = newRawToken();
-        tokens.save(new RefreshToken(hash(replacement), old.getFamilyId(), user, now, old.getExpiresAt()));
-        return Optional.of(response(user, replacement, old.getExpiresAt(), now));
+        tokens.save(new RefreshToken(hash(replacement), old.getFamilyId(), user.get().id(), now, old.getExpiresAt()));
+        return Optional.of(response(user.get(), replacement, old.getExpiresAt(), now));
     }
 
     @Transactional
@@ -79,7 +82,7 @@ public class RefreshTokenService {
         token.ifPresent(value -> tokens.revokeFamily(value.getFamilyId(), Instant.now()));
     }
 
-    private TokenResponse response(User user, String rawRefreshToken, Instant familyExpiresAt, Instant now) {
+    private TokenResponse response(Account user, String rawRefreshToken, Instant familyExpiresAt, Instant now) {
         return new TokenResponse(accessTokens.issueFor(user), "Bearer", accessTokens.accessTtlSeconds(),
                 rawRefreshToken, Math.max(0, Duration.between(now, familyExpiresAt).toSeconds()));
     }

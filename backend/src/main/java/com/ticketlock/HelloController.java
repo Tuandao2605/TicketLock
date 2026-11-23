@@ -1,6 +1,7 @@
 package com.ticketlock;
 
 import java.util.Map;
+import com.ticketlock.user.service.UserService;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -8,6 +9,9 @@ import org.springframework.security.core.Authentication;
 
 @RestController
 public class HelloController {
+    private final UserService users;
+
+    public HelloController(UserService users) { this.users = users; }
 
     @GetMapping("/hello")
     public String hello() {
@@ -21,8 +25,10 @@ public class HelloController {
 
     @GetMapping("/me")
     public Map<String, Object> me(Authentication authentication) {
+        var profile = users.currentProfile();
         return Map.of(
-                "username", authentication.getName(),
+                "userId", profile.id().toString(),
+                "username", profile.email(),
                 "authorities", authentication.getAuthorities().stream()
                         .map(authority -> authority.getAuthority())
                         .toList());

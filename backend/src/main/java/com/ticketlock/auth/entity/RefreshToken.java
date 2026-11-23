@@ -1,13 +1,9 @@
 package com.ticketlock.auth.entity;
 
-import com.ticketlock.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -25,9 +21,8 @@ public class RefreshToken {
     @Column(name = "family_id", nullable = false, updatable = false)
     private UUID familyId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false, updatable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false, updatable = false)
+    private UUID userId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -44,17 +39,17 @@ public class RefreshToken {
     protected RefreshToken() {
     }
 
-    public RefreshToken(String tokenHash, UUID familyId, User user, Instant createdAt, Instant expiresAt) {
+    public RefreshToken(String tokenHash, UUID familyId, UUID userId, Instant createdAt, Instant expiresAt) {
         this.tokenHash = tokenHash;
         this.familyId = familyId;
-        this.user = user;
+        this.userId = userId;
         this.createdAt = createdAt;
         this.expiresAt = expiresAt;
     }
 
     public String getTokenHash() { return tokenHash; }
     public UUID getFamilyId() { return familyId; }
-    public User getUser() { return user; }
+    public UUID getUserId() { return userId; }
     public Instant getExpiresAt() { return expiresAt; }
     public Instant getUsedAt() { return usedAt; }
     public Instant getRevokedAt() { return revokedAt; }

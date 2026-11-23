@@ -39,7 +39,9 @@ Không đưa toàn bộ giai đoạn B–D vào deadline Security hai tuần.
 - Admin quản lý sự kiện; staff chỉ check-in sự kiện được phân công.
 - Check-in cùng vé đồng thời chỉ có một thao tác thành công.
 
-Reservation thuộc user và có ID riêng, không lấy HTTP Session ID làm định danh. Logout không tự hủy đơn hàng hoặc thanh toán đang xử lý.
+Reservation thuộc user UUID và có ID riêng, không lấy HTTP Session ID làm định danh. Session principal và JWT `sub` dùng UUID; email vẫn là thông tin đăng nhập/hiển thị. Logout không tự hủy đơn hàng hoặc thanh toán đang xử lý.
+
+Các quyết định M1 đã thống nhất: sau khi một Show mở bán, sơ đồ ghế của Show bị khóa, kể cả thay đổi gián tiếp từ layout dùng chung; ngừng bán không tự mở khóa. Giá từng ghế và currency được server lưu snapshot cùng transaction giữ ghế thành công, dùng cho checkout trong thời gian hold còn hiệu lực. Hold bị hủy/hết hạn không giữ giá cho lần đặt mới. Quy trình xác nhận nếu giá đổi trước hold và chính sách phí sẽ được thiết kế trong ADV-003; đây không phải chức năng đã triển khai.
 
 ## 4. Kiến trúc đích
 
@@ -179,7 +181,8 @@ Kafka không tự bảo đảm exactly-once cho side effect ở PostgreSQL, prov
 
 | Chủ sở hữu | Dữ liệu |
 |---|---|
-| Auth | User, role, credentials, refresh token |
+| User | Tài khoản, email, role, trạng thái và password hash |
+| Auth | Xác thực, session, access/refresh token |
 | Inventory | Show, Seat, Reservation, ReservationSeat, partition fencing token |
 | Booking | Booking, SagaInstance, SagaStep, idempotency record |
 | Payment | PaymentOperation, provider reference, refund operation |
