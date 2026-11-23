@@ -1,0 +1,5 @@
+# Chỉ dùng khi kết nối database demo từ DataGrip trên máy local.
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${DEMO_DB_LOCAL_PORT:-5433}:5432"

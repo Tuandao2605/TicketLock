@@ -230,6 +230,18 @@ cp -n .env.demo.example .env.demo
 docker compose --env-file .env.demo -f compose.demo.yaml up -d --build
 ```
 
+### Kết nối DataGrip với PostgreSQL demo
+
+Chạy từ thư mục gốc để thêm cổng chỉ truy cập từ máy local:
+
+```bash
+docker compose --env-file .env.demo -f compose.demo.yaml -f compose.demo.datagrip.yaml up -d --no-deps postgres
+```
+
+Lệnh tạo lại container PostgreSQL và có thể gián đoạn kết nối ngắn; named volume `demo_postgres` được giữ. Trong DataGrip nhập host `localhost`, port `5433`, database `ticketlock`, user `ticketlock_app`, password là `DEMO_DB_PASSWORD` trong `.env.demo`. Không chia sẻ mật khẩu. Chọn **Test Connection**.
+
+Để giữ cấu hình cổng trong các lần chạy Compose sau, luôn dùng cả hai `-f compose.demo.yaml -f compose.demo.datagrip.yaml`. Nếu cổng 5433 bận, đặt `DEMO_DB_LOCAL_PORT` trong `.env.demo` rồi chạy lại lệnh trên và dùng cổng tương ứng. Đổi mật khẩu `.env.demo` sau khi volume được tạo không tự đổi password PostgreSQL. Cổng 127.0.0.1 chỉ dành cho DataGrip trên cùng máy; Cloudflare Tunnel không cung cấp kết nối PostgreSQL.
+
 Mở `http://localhost:8088` và kiểm tra đăng ký/đăng nhập. Để mở URL công khai:
 
 ```bash

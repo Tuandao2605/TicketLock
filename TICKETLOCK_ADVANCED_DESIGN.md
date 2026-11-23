@@ -1,6 +1,7 @@
 # TicketLock — Nền tảng đặt vé cạnh tranh cao và xử lý thanh toán phân tán
 
 Kế hoạch triển khai: [Sprint và ticket Advanced](docs/advanced/SPRINT_BACKLOG.md) — 12 sprint, 48 ticket chính và backlog mở rộng, có phụ thuộc và tiêu chí nghiệm thu.
+ADR ADV-001: [Modular monolith và ranh giới dữ liệu](docs/advanced/adr/0001-modular-monolith.md).
 
 ## 1. Mô tả dự án
 

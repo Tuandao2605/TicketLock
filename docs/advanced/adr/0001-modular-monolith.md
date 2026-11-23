@@ -6,6 +6,20 @@
 
 TicketLock hiện là một ứng dụng Spring Boot. PostgreSQL lưu tài khoản và refresh token; Redis lưu HTTP session. React dùng session tại `/login`; JWT API dành cho client mobile và chỉ bật với profile `jwt`. Event, Inventory và Booking chưa được triển khai. M1 cần kiểm chứng tính đúng đắn khi nhiều người tranh ghế trước khi thêm hàng đợi hay tách service.
 
+## Kiểm kê code hiện tại của ADV-001
+
+| Thành phần | Hiện có trong repository |
+|---|---|
+| `auth` | JSON session login/đăng ký/CSRF; JWT login, refresh rotation và logout khi bật `jwt` |
+| `user` | `User`, `Role`, repository, DTO/mapper, service và API hồ sơ `/api/users/me`, `/api/users/{userId}` |
+| `security` | SecurityFilterChain, user details, method security và Redis session registry |
+| Controller lab | `/hello`, `/public/hello`, `/me`, `/blocked`, `/lab/session`, `/lab/session/status`, role/method-security lab |
+| PostgreSQL theo entity | `app_users`, `refresh_tokens`; schema thực tế và các bảng phụ/migration lịch sử cần kiểm kê riêng ở ADV-002 |
+| Redis | HTTP session và index principal; không chứa booking/reservation |
+| Frontend | React dùng session; app mobile chưa có, JWT API dùng profile `jwt` |
+
+`SecurityConfig` ở package gốc. Hiện `RefreshTokenService` truy cập `UserRepository` trực tiếp và `UserSecurity` cũng dùng repository; các rule boundary dưới đây là **quy tắc cho code mới và mục tiêu refactor**, không khẳng định code cũ đã tuân thủ. ADV-001 chưa refactor code.
+
 ## Quyết định
 
 M1 dùng một ứng dụng, một lần deploy và một PostgreSQL. Tổ chức code theo module nghiệp vụ; mỗi module sở hữu dữ liệu và công bố service/interface cho module khác. Controller gọi service của module mình; không gọi repository của module khác. Không tạo dependency vòng giữa các module. Package cụ thể được tạo khi triển khai nghiệp vụ, không tạo package rỗng để minh họa.
@@ -57,7 +71,7 @@ Event mô tả sự kiện; Show là một suất diễn cụ thể. Seat thuộ
 - Hold hợp lệ khi `now < deadline` theo đồng hồ server. Confirm, release và expire kiểm tra reservation, version và trạng thái phù hợp; confirm sau deadline bị từ chối ngay cả khi worker chưa dọn. Lệnh cũ không được giải phóng hold mới.
 - M1 có thể dùng local transaction trên cùng DB; interface module không có nghĩa transaction tự động bao trùm các service/DB sau khi tách. Khi tách phải thiết kế protocol nhất quán riêng.
 
-Ví dụ: customer gửi danh sách seat ID để hold. Security xác thực principal; Inventory kiểm tra show, ghế và điều kiện hold, lấy owner từ principal, khóa hoặc cập nhật các ghế trong transaction. Nếu một ghế không hợp lệ hoặc đã bị giữ, transaction rollback toàn bộ. Server chỉ trả thành công sau commit. Release/confirm kiểm tra owner theo policy và reservation/version/deadline tại server.
+Ví dụ: customer gửi danh sách seat ID để hold. Security xác thực principal; application service chuyển danh tính đã xác thực sang user ID nội bộ đáng tin cậy. Inventory nhận user ID từ service nội bộ, kiểm tra show, ghế và điều kiện hold, rồi khóa hoặc cập nhật các ghế trong transaction. Nếu một ghế không hợp lệ hoặc đã bị giữ, transaction rollback toàn bộ. Server chỉ trả thành công sau commit. Release/confirm kiểm tra owner theo policy và reservation/version/deadline tại server.
 
 ## Phương án cân nhắc và hệ quả
 
@@ -71,3 +85,13 @@ Ví dụ: customer gửi danh sách seat ID để hold. Security xác thực pri
 - Hai request tranh cùng ghế không được cùng tạo hold hợp lệ; phải kiểm thử trên PostgreSQL thật ở ADV-012.
 - Một ghế lỗi trong nhóm phải rollback cả nhóm; kiểm thử ở ADV-009/ADV-012.
 - Định danh principal thống nhất, giá snapshot và chính sách thay đổi layout cần được cụ thể hóa trong API/schema ticket trước khi code. ADR này là quyết định thiết kế, chưa phải bằng chứng các invariant đã được triển khai.
+
+## Ba tình huống review thiết kế
+
+| Tình huống | Quyết định cần được thực thi ở ticket sau | Bằng chứng dự kiến |
+|---|---|---|
+| Client gửi role ADMIN/ownerId của người khác | Bỏ qua vai trò, owner do client tự khai; dùng Authentication và kiểm tra quyền/ownership phía server. | ADV-003 định nghĩa contract; ADV-012 kiểm thử quyền. |
+| Hai request giữ cùng một ghế | DB là nguồn sự thật; transaction khóa/cập nhật có điều kiện để chỉ một hold hợp lệ thắng. | ADV-009 và ADV-012 kiểm thử đồng thời trên PostgreSQL. |
+| Một ghế trong nhóm đã bị giữ | Rollback cả transaction; không lưu hold thành công một phần. | ADV-009 và ADV-012 kiểm tra trạng thái toàn bộ nhóm. |
+
+Đây là review thiết kế, chưa chứng minh bằng test nghiệp vụ vì các module giữ ghế chưa tồn tại. Các điểm cần quyết định trước implementation: cách ánh xạ session email/JWT UUID sang user ID, snapshot giá và quy tắc đổi layout đã được ghi ở trên.

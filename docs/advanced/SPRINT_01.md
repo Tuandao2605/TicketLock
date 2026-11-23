@@ -36,7 +36,7 @@ Một gợi ý lịch làm việc: ngày 1–2 cho ADV-001; ngày 3–6 cho ADV-
 
 ## ADV-001 — ADR kiến trúc và ranh giới module
 
-**Trạng thái:** TODO · **Ưu tiên:** P0 · **Size:** M · **Phụ thuộc:** không
+**Trạng thái:** IN_PROGRESS — ADR đã soạn, chờ review · **Ưu tiên:** P0 · **Size:** M · **Phụ thuộc:** không
 
 ### Mục tiêu
 
@@ -57,15 +57,15 @@ Chốt ai sở hữu dữ liệu và ai được gọi ai trước khi tạo Eve
 
 ### Việc cần làm
 
-- [ ] Kiểm kê package, endpoint, bảng và nơi lưu session thực tế; ghi phần nào đã tồn tại.
-- [ ] Viết `docs/advanced/adr/0001-modular-monolith.md` theo các mục: bối cảnh, quyết định, phương án đã cân nhắc, hệ quả và câu hỏi mở.
-- [ ] Mô tả sơ đồ một backend/deploy, PostgreSQL và Redis; ghi rõ Kafka, service tách riêng và engine mới là giai đoạn sau.
-- [ ] Lập bảng ownership dự kiến: auth/user → user, role, credentials và refresh; event → event/show metadata; inventory → trạng thái ghế và reservation; booking → booking/Saga sau này; payment → payment operation; ticket → ticket/check-in. Show/seat layout và current seat state cần chỉ rõ module sở hữu duy nhất trước khi tạo schema.
-- [ ] Chốt cách module gọi qua service/public interface. Controller không gọi trực tiếp repository của module khác; dependency giữa module không được tạo vòng lặp.
-- [ ] Ghi trust boundary: lấy user từ `Authentication`; không tin `ownerId`, giá hoặc role trong request; session cookie và bearer JWT đi qua chain tương ứng.
-- [ ] Ghi invariant: một show-seat có tối đa một hold hợp lệ; giữ nhóm ghế thành công toàn bộ hoặc không ghế nào; confirm/release phải kiểm tra reservation/version/deadline; chỉ trả thành công sau commit bền.
-- [ ] Giải thích Event là sự kiện, Show là một suất cụ thể. Quyết định quy tắc hủy/hết hạn hold, và logout không tự hủy booking.
-- [ ] Cập nhật liên kết thiết kế/backlog tới ADR sau khi tạo.
+- [x] Kiểm kê package, endpoint, bảng và nơi lưu session thực tế; ghi phần nào đã tồn tại.
+- [x] Viết `docs/advanced/adr/0001-modular-monolith.md` theo các mục: bối cảnh, quyết định, phương án đã cân nhắc, hệ quả và câu hỏi mở.
+- [x] Mô tả sơ đồ một backend/deploy, PostgreSQL và Redis; ghi rõ Kafka, service tách riêng và engine mới là giai đoạn sau.
+- [x] Lập bảng ownership dự kiến: auth/user → user, role, credentials và refresh; event → event/show metadata; inventory → trạng thái ghế và reservation; booking → booking/Saga sau này; payment → payment operation; ticket → ticket/check-in. Show/seat layout và current seat state cần chỉ rõ module sở hữu duy nhất trước khi tạo schema.
+- [x] Chốt cách module gọi qua service/public interface. Controller không gọi trực tiếp repository của module khác; dependency giữa module không được tạo vòng lặp.
+- [x] Ghi trust boundary: lấy user từ `Authentication`; không tin `ownerId`, giá hoặc role trong request; session cookie và bearer JWT đi qua chain tương ứng.
+- [x] Ghi invariant: một show-seat có tối đa một hold hợp lệ; giữ nhóm ghế thành công toàn bộ hoặc không ghế nào; confirm/release phải kiểm tra reservation/version/deadline; chỉ trả thành công sau commit bền.
+- [x] Giải thích Event là sự kiện, Show là một suất cụ thể. Quyết định quy tắc hủy/hết hạn hold, và logout không tự hủy booking.
+- [x] Cập nhật liên kết thiết kế/backlog tới ADR sau khi tạo.
 
 ### Kết quả và nghiệm thu
 
@@ -80,6 +80,8 @@ Chốt ai sở hữu dữ liệu và ai được gọi ai trước khi tạo Eve
 1. Đọc `SecurityConfig`, `LoginController`, `UserService` và `RefreshTokenService` để xác định hiện trạng.
 2. Vẽ luồng request từ client → filter chain → controller → service → repository; đánh dấu Redis chỉ lưu session, PostgreSQL lưu user/refresh.
 3. Viết bảng module ownership và các invariant vào ADR; sau đó tự review theo ba tình huống ở phần nghiệm thu.
+
+**Tiến độ:** [ADR 0001](adr/0001-modular-monolith.md) đã có sơ đồ, bảng ownership, kiểm kê code và ba tình huống tự review. Ticket đang chờ review quyết định và thống nhất các điểm mở; chưa đánh dấu DONE hay khẳng định invariant nghiệp vụ đã được kiểm thử.
 
 **Bằng chứng hoàn thành:** link ADR, sơ đồ, bảng ownership và nội dung review trong PR/tài liệu.
 
