@@ -4,7 +4,7 @@
 
 Sprint 1 tạo ranh giới module, đường nâng cấp database, hợp đồng API và môi trường kiểm thử. Đầu ra là nền tảng để bắt đầu Event/Show/Seat ở Sprint 2. Đây là kế hoạch làm việc; các ô chưa đánh dấu không có nghĩa đã được triển khai.
 
-ADR đề xuất: [0001 — Modular monolith](adr/0001-modular-monolith.md) · Backlog tổng: [SPRINT_BACKLOG.md](SPRINT_BACKLOG.md) · Thiết kế: [Advanced](../../TICKETLOCK_ADVANCED_DESIGN.md)
+ADR: [0001 — Modular monolith](0001-modular-monolith.md) · Backlog tổng: [SPRINT_BACKLOG.md](../SPRINT_BACKLOG.md) · Thiết kế: [Advanced](../../../TICKETLOCK_ADVANCED_DESIGN.md)
 
 ## Hiện trạng và phạm vi
 
@@ -36,7 +36,7 @@ Một gợi ý lịch làm việc: ngày 1–2 cho ADV-001; ngày 3–6 cho ADV-
 
 ## ADV-001 — ADR kiến trúc và ranh giới module
 
-**Trạng thái:** IN_PROGRESS — ADR đã soạn, chờ review · **Ưu tiên:** P0 · **Size:** M · **Phụ thuộc:** không
+**Trạng thái:** DONE — ADR đã tự review theo tiêu chí ticket · **Ưu tiên:** P0 · **Size:** M · **Phụ thuộc:** không
 
 ### Mục tiêu
 
@@ -44,7 +44,7 @@ Chốt ai sở hữu dữ liệu và ai được gọi ai trước khi tạo Eve
 
 ### Đầu vào
 
-- [Thiết kế Advanced](../../TICKETLOCK_ADVANCED_DESIGN.md), phần 3–8.
+- [Thiết kế Advanced](../../../TICKETLOCK_ADVANCED_DESIGN.md), phần 3–8.
 - Source hiện có: `backend/src/main/java/com/ticketlock/auth`, `user`, `security` và controller lab ở package gốc.
 - Hai luồng xác thực: session/CSRF cho React; bearer JWT cho API JWT khi profile `jwt` bật.
 
@@ -61,7 +61,7 @@ Chốt ai sở hữu dữ liệu và ai được gọi ai trước khi tạo Eve
 ### Việc cần làm
 
 - [x] Kiểm kê package, endpoint, bảng và nơi lưu session thực tế; ghi phần nào đã tồn tại.
-- [x] Viết `docs/advanced/adr/0001-modular-monolith.md` theo các mục: bối cảnh, quyết định, phương án đã cân nhắc, hệ quả và câu hỏi mở.
+- [x] Viết `docs/advanced/sprint-01/0001-modular-monolith.md` theo các mục: bối cảnh, quyết định, phương án đã cân nhắc, hệ quả và câu hỏi mở.
 - [x] Mô tả sơ đồ một backend/deploy, PostgreSQL và Redis; ghi rõ Kafka, service tách riêng và engine mới là giai đoạn sau.
 - [x] Lập bảng ownership dự kiến: user → user, role và password hash; auth → xác thực, session và refresh; event → event/show metadata; inventory → trạng thái ghế và reservation; booking → booking/Saga sau này; payment → payment operation; ticket → ticket/check-in. Show/seat layout và current seat state cần chỉ rõ module sở hữu duy nhất trước khi tạo schema.
 - [x] Chốt cách module gọi qua service/public interface. Controller không gọi trực tiếp repository của module khác; dependency giữa module không được tạo vòng lặp.
@@ -84,7 +84,7 @@ Chốt ai sở hữu dữ liệu và ai được gọi ai trước khi tạo Eve
 2. Vẽ luồng request từ client → filter chain → controller → service → repository; đánh dấu Redis chỉ lưu session, PostgreSQL lưu user/refresh.
 3. Viết bảng module ownership và các invariant vào ADR; sau đó tự review theo ba tình huống ở phần nghiệm thu.
 
-**Tiến độ:** [ADR 0001](adr/0001-modular-monolith.md) đã có sơ đồ, bảng ownership, kiểm kê code và ba tình huống tự review. Ba quyết định UUID, khóa sơ đồ sau mở bán và snapshot giá lúc hold đã được chọn; ticket vẫn chờ review tổng thể và làm rõ quy trình giá/phí trong ADV-003; chưa đánh dấu DONE hay khẳng định invariant nghiệp vụ đã được kiểm thử.
+**Tiến độ:** [ADR 0001](0001-modular-monolith.md) đã có sơ đồ, bảng ownership, kiểm kê code và ba tình huống tự review. Đã tự review ba tình huống và chốt UUID, khóa sơ đồ sau mở bán, snapshot giá lúc hold. Quy trình giá/phí được tiếp tục ở ADV-003; các invariant hold vẫn cần kiểm thử trong ADV-009/ADV-012.
 
 **Bằng chứng hoàn thành:** link ADR, sơ đồ, bảng ownership và nội dung review trong PR/tài liệu.
 
@@ -92,7 +92,7 @@ Chốt ai sở hữu dữ liệu và ai được gọi ai trước khi tạo Eve
 
 ## ADV-002 — Migration versioned và nâng cấp DB Mini
 
-**Trạng thái:** TODO · **Ưu tiên:** P0 · **Size:** L · **Phụ thuộc:** ADV-001
+**Trạng thái:** REVIEW — hoàn tất triển khai và kiểm thử; chờ review thay đổi ADV-002 · **Ưu tiên:** P0 · **Size:** L · **Phụ thuộc:** ADV-001
 
 ### Mục tiêu
 
@@ -106,14 +106,14 @@ Database sạch được tạo bằng migration có phiên bản; bản sao DB M
 
 ### Việc cần làm
 
-- [ ] Kiểm kê schema thực tế và đối chiếu entity `User`, `RefreshToken`, index, unique constraint, foreign key; ghi cả khác biệt do `ddl-auto=update` có thể đã tạo.
-- [ ] Ghi lý do chọn Flyway và kiểm tra dependency/tương thích với phiên bản Spring Boot/PostgreSQL đang dùng trước khi thêm vào `backend/build.gradle`.
-- [ ] Thiết kế migration đầu tiên cho DB sạch, kèm quy trình baseline DB đã có schema. Phân biệt **schema mới** với **DB cũ đã có bảng**; không mặc định đánh dấu baseline khi chưa đối chiếu schema.
-- [ ] Tạo hai database test độc lập: một DB rỗng và một DB phục dựng từ bản sao dữ liệu Mini giả lập; không thao tác phá hủy trên volume đang dùng.
-- [ ] Viết migration và hướng dẫn backup/restore, cách kiểm tra schema/version/checksum. Giữ script UUID cũ như công cụ lịch sử nếu còn cần, ghi rõ điều kiện sử dụng.
-- [ ] Chuyển `spring.jpa.hibernate.ddl-auto=validate` sau khi schema migration khớp entity. Không dùng `clean` hoặc `docker compose down -v` để xử lý lỗi migration.
-- [ ] Kiểm tra nâng cấp DB có user/refresh token bằng dữ liệu giả: so UUID, role, enabled, password hash và quan hệ trước/sau. Không ghi mật khẩu/hash/token thật vào log hoặc tài liệu.
-- [ ] Cập nhật README và mô tả cách xử lý khi baseline/schema/checksum không khớp; dừng và điều tra thay vì sửa migration đã chạy tùy tiện.
+- [x] Kiểm kê schema thực tế và đối chiếu entity `User`, `RefreshToken`, index, unique constraint, foreign key; ghi cả khác biệt do `ddl-auto=update` có thể đã tạo.
+- [x] Ghi lý do chọn Flyway và kiểm tra dependency/tương thích với phiên bản Spring Boot/PostgreSQL đang dùng trước khi thêm vào `backend/build.gradle`.
+- [x] Thiết kế migration đầu tiên cho DB sạch, kèm quy trình baseline DB đã có schema. Phân biệt **schema mới** với **DB cũ đã có bảng**; không mặc định đánh dấu baseline khi chưa đối chiếu schema.
+- [x] Tạo hai database test độc lập: một DB rỗng và một DB phục dựng từ bản sao dữ liệu Mini giả lập; không thao tác phá hủy trên volume đang dùng.
+- [x] Viết migration và hướng dẫn backup/restore, cách kiểm tra schema/version/checksum. Giữ script UUID cũ như công cụ lịch sử nếu còn cần, ghi rõ điều kiện sử dụng.
+- [x] Chuyển `spring.jpa.hibernate.ddl-auto=validate` sau khi schema migration khớp entity. Không dùng `clean` hoặc `docker compose down -v` để xử lý lỗi migration.
+- [x] Kiểm tra nâng cấp DB có user/refresh token bằng dữ liệu giả: so UUID, role, enabled, password hash và quan hệ trước/sau. Không ghi mật khẩu/hash/token thật vào log hoặc tài liệu.
+- [x] Cập nhật README và mô tả cách xử lý khi baseline/schema/checksum không khớp; dừng và điều tra thay vì sửa migration đã chạy tùy tiện.
 
 ### Kết quả và nghiệm thu
 
@@ -123,13 +123,15 @@ Database sạch được tạo bằng migration có phiên bản; bản sao DB M
 - Có bằng chứng trường hợp DB cũ sai schema dừng an toàn và hướng dẫn khôi phục. Có quy trình backup/restore đã thử trên dữ liệu test.
 - **Ngoài phạm vi:** chưa tạo bảng Event/Booking, chưa xóa database local.
 
+**Tiến độ:** [Hướng dẫn ADV-002](ADV_002_MIGRATION.md) ghi kết quả DB rỗng và baseline fixture. Đã đối chiếu bản sao DB local và diễn tập backup/restore, đăng nhập, khởi động lại và từ chối DB chưa baseline với fixture giả. Đã kiểm chứng baseline trên bản sao demo, bảo toàn dữ liệu và refresh token giả sau restore. Chờ review thay đổi ADV-002 trước khi đánh dấu DONE.
+
 **Bằng chứng hoàn thành:** migration, log đã che thông tin nhạy cảm, kết quả kiểm tra DB rỗng/DB cũ và hướng dẫn nâng cấp.
 
 ---
 
 ## ADV-003 — Hợp đồng API và lỗi nghiệp vụ
 
-**Trạng thái:** TODO · **Ưu tiên:** P0 · **Size:** M · **Phụ thuộc:** ADV-001
+**Trạng thái:** REVIEW — hợp đồng draft đã validate; chờ review · **Ưu tiên:** P0 · **Size:** M · **Phụ thuộc:** ADV-001
 
 ### Mục tiêu
 
@@ -143,14 +145,14 @@ Viết hợp đồng có thể review trước khi code Event/Reservation, bao g
 
 ### Việc cần làm
 
-- [ ] Tạo tài liệu versioned trong `docs/advanced/api/` và chỉ rõ trạng thái draft. Không đưa endpoint giả vào controller để làm tài liệu.
-- [ ] Mô tả Event/Show list/detail, admin tạo/publish, snapshot ghế, tạo/đọc/hủy reservation và booking dự kiến; xác định UUID, pagination, thời gian UTC và giới hạn số ghế.
-- [ ] Ghi rõ endpoint thực tế hiện có cho đăng ký/login/session và JWT chỉ để tham chiếu; không tự xem mọi `/api/**` đều là JWT.
-- [ ] Với từng endpoint dự kiến, mô tả method/path, actor, credential, CSRF nếu dùng session cookie, request/response ví dụ và trạng thái lỗi. Không đưa token thật vào ví dụ.
-- [ ] Định nghĩa `Idempotency-Key` cho thao tác cần retry: phạm vi theo user + operation + key; cùng key/cùng payload, cùng key/khác payload và request đang xử lý. Ghi rõ việc lưu record bền sẽ được triển khai ở ADV-011.
-- [ ] Quy định correlation ID và response lỗi ổn định (ví dụ `code`, `message`, `traceId`); không cam kết format đó đã áp dụng cho mọi endpoint Mini.
-- [ ] Lập bảng 400/401/403/404/409/429/503, phân biệt xung đột ghế 409, giới hạn tần suất 429 và hàng đợi đầy/dịch vụ chưa sẵn sàng 503. CSRF thiếu/sai ở session chain có thể trả 403.
-- [ ] Rà lại quyền sở hữu: client không quyết định owner, giá hoặc trạng thái payment; không suy ra authorization từ UUID khó đoán.
+- [x] Tạo tài liệu versioned trong `docs/advanced/api/` và chỉ rõ trạng thái draft. Không đưa endpoint giả vào controller để làm tài liệu.
+- [x] Mô tả Event/Show list/detail, admin tạo/publish, snapshot ghế, tạo/đọc/hủy reservation và booking dự kiến; xác định UUID, pagination, thời gian UTC và giới hạn số ghế.
+- [x] Ghi rõ endpoint thực tế hiện có cho đăng ký/login/session và JWT chỉ để tham chiếu; không tự xem mọi `/api/**` đều là JWT.
+- [x] Với từng endpoint dự kiến, mô tả method/path, actor, credential, CSRF nếu dùng session cookie, request/response ví dụ và trạng thái lỗi. Không đưa token thật vào ví dụ.
+- [x] Định nghĩa `Idempotency-Key` cho thao tác cần retry: phạm vi theo user + operation + key; cùng key/cùng payload, cùng key/khác payload và request đang xử lý. Ghi rõ việc lưu record bền sẽ được triển khai ở ADV-011.
+- [x] Quy định correlation ID và response lỗi ổn định (ví dụ `code`, `message`, `traceId`); không cam kết format đó đã áp dụng cho mọi endpoint Mini.
+- [x] Lập bảng 400/401/403/404/409/429/503, phân biệt xung đột ghế 409, giới hạn tần suất 429 và hàng đợi đầy/dịch vụ chưa sẵn sàng 503. CSRF thiếu/sai ở session chain có thể trả 403.
+- [x] Rà lại quyền sở hữu: client không quyết định owner, giá hoặc trạng thái payment; không suy ra authorization từ UUID khó đoán.
 
 ### Kết quả và nghiệm thu
 
@@ -159,7 +161,7 @@ Viết hợp đồng có thể review trước khi code Event/Reservation, bao g
 - Request customer không có trường cho phép tự cấp `ownerId` hoặc giá; role/ownership được lấy và kiểm tra phía server.
 - Hợp đồng không tuyên bố queue, rate limit hoặc booking đã có; không phá hợp đồng login hiện hành.
 
-**Bằng chứng hoàn thành:** OpenAPI draft, kết quả validate, bảng status và ít nhất một ví dụ thành công + xung đột/không đủ quyền cho reservation.
+**Bằng chứng:** [OpenAPI draft](../api/openapi.yaml), [quy tắc và bảng lỗi](../api/contract.md); `openapi-spec-validator` 0.9.0 kiểm tra thành công. Có ví dụ hold thành công, conflict và không đủ quyền. Đây là hợp đồng, chưa phải endpoint đã triển khai.
 
 ---
 
@@ -198,7 +200,7 @@ Từ clone sạch, tự động build và kiểm tra backend/frontend với Post
 
 ## Review cuối Sprint 1
 
-- [ ] ADV-001 DONE: ADR được review, trách nhiệm và invariant nhất quán.
+- [x] ADV-001 DONE: ADR được review, trách nhiệm và invariant nhất quán.
 - [ ] ADV-002 DONE: migration DB sạch + nâng cấp bản sao DB cũ thành công, không mất dữ liệu test.
 - [ ] ADV-003 DONE: OpenAPI draft hợp lệ, authorization/idempotency/lỗi được giải thích.
 - [ ] ADV-004 DONE: CI dùng PostgreSQL/Redis test độc lập và bắt được lỗi có chủ đích.

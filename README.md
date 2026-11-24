@@ -53,6 +53,8 @@ Sprint và ticket triển khai Advanced: [backlog](docs/advanced/SPRINT_BACKLOG.
 
 Client mobile dùng JWT API khi backend bật profile `jwt`. Dự án chưa có ứng dụng mobile; hợp đồng tích hợp được ghi tại `docs/mini/mobile-jwt.md`. Website React dùng session, kể cả khi mở bằng trình duyệt điện thoại.
 
+**Database đã tồn tại:** bản ADV-002 dùng Flyway và `validate`, không tự baseline schema cũ. Trước khi khởi động backend bản mới với database cũ, làm theo [hướng dẫn migration](docs/advanced/sprint-01/ADV_002_MIGRATION.md).
+
 ## Chạy ứng dụng
 
 Tạo file cấu hình local nếu chưa có, rồi khởi động PostgreSQL:

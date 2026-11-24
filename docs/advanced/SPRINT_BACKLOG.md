@@ -81,11 +81,13 @@ Ticket DONE khi:
 
 ## Sprint 1 — Chuẩn bị modular monolith
 
-Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](SPRINT_01.md). ADR đề xuất: [0001 — Modular monolith](adr/0001-modular-monolith.md).
+Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprint-01/SPRINT_01.md). ADR: [0001 — Modular monolith](sprint-01/0001-modular-monolith.md).
 
 **Mục tiêu:** xây nền để phát triển domain mà không tách service quá sớm.
 
 ### ADV-001 — ADR kiến trúc, module và trust boundary
+
+**Trạng thái: DONE** — đã tự review thiết kế; kiểm thử invariant thuộc các ticket nghiệp vụ sau.
 
 - **P0 · M · Phụ thuộc:** không.
 - **Quyết định:** Dùng modular monolith một deploy; Auth và User tách module; principal session/JWT là UUID. Event sở hữu layout, Inventory sở hữu trạng thái ghế; khóa sơ đồ sau mở bán và chốt giá khi hold thành công. Giao tiếp qua service interface.
@@ -107,6 +109,8 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](SPRIN
   để sửa schema thật; khởi động lại không chạy trùng migration.
 
 ### ADV-003 — Hợp đồng API và lỗi nghiệp vụ
+
+**Trạng thái: REVIEW** · [OpenAPI draft](api/openapi.yaml) · [Quy tắc API](api/contract.md)
 
 - **P0 · M · Phụ thuộc:** ADV-001.
 - **Quyết định:** Viết OpenAPI 3 YAML thủ công trong `docs/advanced/api/`; đây là hợp đồng dự kiến, không tạo controller giả.

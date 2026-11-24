@@ -1,6 +1,6 @@
 # ADR 0001 — Modular monolith và ranh giới dữ liệu
 
-**Trạng thái:** Đề xuất để review · **Phạm vi:** milestone M1 (Sprint 1–4)
+**Trạng thái:** Đã chấp nhận cho M1 sau tự review ADV-001 · **Phạm vi:** milestone M1 (Sprint 1–4)
 
 ## Bối cảnh
 
@@ -100,6 +100,13 @@ Ví dụ: customer gửi danh sách seat ID để hold. Security xác thực pri
 
 Đây là review thiết kế, chưa chứng minh bằng test nghiệp vụ vì các module giữ ghế chưa tồn tại. Chi tiết xác nhận khi giá thay đổi trước hold và chính sách phí vẫn cần được mô tả trong ADV-003 trước implementation.
 
-## Hướng refactor Auth–User
+## Ranh giới Auth–User hiện tại
 
-User công bố interface tra cứu cần thiết, ví dụ `UserQuery`; Auth gọi interface này thay vì truy cập repository User trực tiếp. Interface nội bộ chỉ cung cấp dữ liệu tối thiểu; password hash chỉ được dùng nội bộ để xác thực, không trả qua API hay log. Registration cần một use case tạo user do User sở hữu, với phân định rõ transaction và xử lý email trùng. `RefreshToken` lưu `userId` trên cột `user_id` hiện có. Foreign key hiện có trong database cũ không bị xóa bởi refactor này; schema tạo mới cần migration ADV-002 quy định và kiểm tra foreign key, vì mapping UUID không tự tạo foreign key như quan hệ JPA trước đây. Việc tách module không yêu cầu tách service/deploy trong M1.
+User công bố interface `UserAccounts`; Auth gọi interface này thay vì truy cập repository User trực tiếp. Interface nội bộ hiện trả `Account` có password hash cho cả tra cứu theo email và ID; hash chỉ dùng nội bộ, không trả qua HTTP hay log. Đây là phạm vi dữ liệu rộng hơn mức tối thiểu: cân nhắc tách kiểu trả về xác thực và hồ sơ khi thay đổi interface sau này. Registration cần một use case tạo user do User sở hữu, với phân định rõ transaction và xử lý email trùng. `RefreshToken` lưu `userId` trên cột `user_id` hiện có. Foreign key hiện có trong database cũ không bị xóa bởi refactor này; schema tạo mới dùng migration V1 của ADV-002 để quy định foreign key, vì mapping UUID không tự tạo foreign key như quan hệ JPA trước đây. Việc tách module không yêu cầu tách service/deploy trong M1.
+
+### Kết quả tự review ADV-001 — 24/11/2026
+
+- Bảng ownership chọn duy nhất Event cho layout và Inventory cho ShowSeat/hold; Booking không ghi trực tiếp trạng thái Inventory. Sơ đồ mô tả dependency dự kiến, không khẳng định module mới đã tồn tại.
+- Ba tình huống role/owner giả, tranh một ghế và lỗi một ghế trong nhóm đã được rà soát theo bảng trên. Những kết luận về hold là yêu cầu thiết kế; ADV-009 và ADV-012 vẫn phải chứng minh bằng kiểm thử.
+- Session dùng principal UUID trong `CustomUserDetailsService`; JWT `sub` dùng UUID; các phiên cũ dùng email cần cutover. API và chính sách xác nhận giá, phí còn là việc cụ thể của ADV-003, không chặn quyết định ranh giới module.
+- Đây là tự review tài liệu theo tiêu chí ticket, không thay thế review PR độc lập nếu dự án yêu cầu.

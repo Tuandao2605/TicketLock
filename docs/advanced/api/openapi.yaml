@@ -1,0 +1,534 @@
+openapi: 3.0.3
+info:
+  title: TicketLock Advanced API — DRAFT
+  version: 0.1.0
+  description: |
+    Hợp đồng dự kiến cho M1; tất cả endpoint trong tài liệu CHƯA được triển khai.
+    Browser dùng session cookie hiện có; request thay đổi dùng CSRF. Bearer JWT chưa
+    được hỗ trợ cho các endpoint dự kiến này. Thời gian UTC (RFC 3339, kết thúc Z),
+    ID UUID. Xem contract.md để biết quyền, retry, giá và phạm vi.
+servers:
+  - url: /
+tags:
+  - name: Events
+  - name: Shows
+  - name: Admin
+  - name: Reservations
+  - name: Bookings
+paths:
+  /api/v1/events:
+    get:
+      tags: [Events]
+      summary: Danh sách sự kiện đã công bố — công khai
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Trang sự kiện
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventPage' }
+              example: { items: [{ id: '11111111-1111-4111-8111-111111111111', name: 'Đêm nhạc', description: 'Chương trình demo' }], page: 0, size: 20, totalElements: 1 }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      tags: [Admin]
+      summary: Tạo sự kiện bản nháp — ADMIN
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EventInput' }
+            example: { name: 'Đêm nhạc', description: 'Chương trình demo' }
+      responses:
+        '201':
+          description: Sự kiện bản nháp
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/events/{eventId}:
+    parameters: [{ $ref: '#/components/parameters/EventId' }]
+    get:
+      tags: [Events]
+      summary: Chi tiết sự kiện có show đã publish — công khai
+      security: []
+      responses:
+        '200':
+          description: Sự kiện
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Event' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/events/{eventId}/shows:
+    parameters: [{ $ref: '#/components/parameters/EventId' }]
+    get:
+      tags: [Shows]
+      summary: Danh sách show đã publish — công khai
+      security: []
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Size' }
+      responses:
+        '200':
+          description: Trang show
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShowPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      tags: [Admin]
+      summary: Tạo show nháp — ADMIN
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShowInput' }
+            example: { startsAt: '2027-06-01T12:00:00Z', venue: 'Nhà hát demo' }
+      responses:
+        '201':
+          description: Show nháp
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Show' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/shows/{showId}:
+    parameters: [{ $ref: '#/components/parameters/ShowId' }]
+    get:
+      tags: [Shows]
+      summary: Chi tiết show đã publish — công khai
+      security: []
+      responses:
+        '200':
+          description: Show
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Show' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/shows/{showId}/publish:
+    parameters: [{ $ref: '#/components/parameters/ShowId' }]
+    post:
+      tags: [Admin]
+      summary: Publish show — ADMIN
+      description: Chỉ publish khi dữ liệu bắt buộc và layout hợp lệ; quy tắc mở bán theo ADR.
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '200':
+          description: Show đã publish
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Show' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/shows/{showId}/seats:
+    parameters: [{ $ref: '#/components/parameters/ShowId' }]
+    get:
+      tags: [Shows]
+      summary: Snapshot ghế — công khai
+      description: Snapshot chỉ để hiển thị, không đảm bảo ghế còn trống và không lộ người giữ.
+      security: []
+      responses:
+        '200':
+          description: Snapshot ghế và giá tham khảo
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SeatSnapshot' }
+              example:
+                showId: '22222222-2222-4222-8222-222222222222'
+                capturedAt: '2027-05-01T10:00:00Z'
+                version: 1
+                seats: [{ showSeatId: '33333333-3333-4333-8333-333333333333', label: A1, status: AVAILABLE, price: { amount: 150000, currency: VND } }]
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/reservations:
+    post:
+      tags: [Reservations]
+      summary: Giữ nhóm ghế — CUSTOMER
+      description: |
+        Tối đa 6 showSeatId khác nhau, cùng show. Server xác định owner và giá;
+        thành công toàn bộ hoặc không ghế nào. Thời hạn dự kiến 10 phút.
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Csrf' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateReservation' }
+            example: { showId: '22222222-2222-4222-8222-222222222222', showSeatIds: ['33333333-3333-4333-8333-333333333333'] }
+      responses:
+        '201':
+          description: Giữ thành công; trả sau commit. Retry cùng key trả lại kết quả này.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reservation' }
+              example:
+                id: '44444444-4444-4444-8444-444444444444'
+                showId: '22222222-2222-4222-8222-222222222222'
+                status: HELD
+                expiresAt: '2027-05-01T10:10:00Z'
+                seats: [{ showSeatId: '33333333-3333-4333-8333-333333333333', price: { amount: 150000, currency: VND } }]
+                total: { amount: 150000, currency: VND }
+        '202': { $ref: '#/components/responses/Pending' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Ghế đã bị giữ hoặc key đã dùng với payload khác
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+              examples:
+                seatConflict: { value: { code: SEAT_UNAVAILABLE, message: 'Một hoặc nhiều ghế không còn trống.', traceId: 'trace-demo-001' } }
+                keyConflict: { value: { code: IDEMPOTENCY_KEY_REUSED, message: 'Key đã được dùng cho yêu cầu khác.', traceId: 'trace-demo-002' } }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/reservation-requests:
+    get:
+      tags: [Reservations]
+      summary: Tra cứu kết quả yêu cầu giữ ghế theo key — CUSTOMER
+      description: Key gửi qua header, chỉ tra cứu trong phạm vi user hiện tại và operation tạo reservation.
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      responses:
+        '200':
+          description: Kết quả cuối cùng; reservation hoặc lỗi cuối được bọc trong response
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReservationRequestResult' }
+        '202': { $ref: '#/components/responses/Pending' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/reservations/{reservationId}:
+    parameters: [{ $ref: '#/components/parameters/ReservationId' }]
+    get:
+      tags: [Reservations]
+      summary: Đọc reservation của mình — CUSTOMER
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Reservation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Reservation' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    delete:
+      tags: [Reservations]
+      summary: Hủy hold của mình — CUSTOMER
+      description: Hủy lại hold đã hủy trả 204; không giải phóng hold mới của ghế.
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }]
+      responses:
+        '204': { description: Đã hủy hoặc đã được hủy trước đó }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/bookings:
+    get:
+      tags: [Bookings]
+      summary: Danh sách booking của mình — CUSTOMER
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Size' }]
+      responses:
+        '200':
+          description: Trang booking
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookingPage' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+    post:
+      tags: [Bookings]
+      summary: Tạo booking từ reservation của mình — CUSTOMER
+      description: Một reservation có tối đa một booking logic; chưa hàm ý thanh toán hay phát vé.
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/Csrf' }, { $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateBooking' }
+            example: { reservationId: '44444444-4444-4444-8444-444444444444' }
+      responses:
+        '201':
+          description: Booking được tạo; retry cùng key trả lại kết quả
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Booking' }
+        '202': { $ref: '#/components/responses/Pending' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/booking-requests:
+    get:
+      tags: [Bookings]
+      summary: Tra cứu kết quả tạo booking theo key — CUSTOMER
+      security: [{ sessionCookie: [] }]
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      responses:
+        '200':
+          description: Kết quả cuối của yêu cầu
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BookingRequestResult' }
+        '202': { $ref: '#/components/responses/Pending' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+  /api/v1/bookings/{bookingId}:
+    parameters: [{ $ref: '#/components/parameters/BookingId' }]
+    get:
+      tags: [Bookings]
+      summary: Chi tiết booking của mình — CUSTOMER
+      security: [{ sessionCookie: [] }]
+      responses:
+        '200':
+          description: Booking
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Booking' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '503': { $ref: '#/components/responses/Unavailable' }
+components:
+  securitySchemes:
+    sessionCookie: { type: apiKey, in: cookie, name: JSESSIONID }
+  parameters:
+    Page: { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 }, description: Trang bắt đầu từ 0 }
+    Size: { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+    EventId: { name: eventId, in: path, required: true, schema: { type: string, format: uuid } }
+    ShowId: { name: showId, in: path, required: true, schema: { type: string, format: uuid } }
+    ReservationId: { name: reservationId, in: path, required: true, schema: { type: string, format: uuid } }
+    BookingId: { name: bookingId, in: path, required: true, schema: { type: string, format: uuid } }
+    Csrf: { name: X-XSRF-TOKEN, in: header, required: true, schema: { type: string }, description: Giá trị cookie XSRF-TOKEN; gửi kèm cookie. }
+    IdempotencyKey: { name: Idempotency-Key, in: header, required: true, schema: { type: string, minLength: 1, maxLength: 128, pattern: '^[A-Za-z0-9._~-]+$' }, description: Key ngẫu nhiên cho một ý định; không chứa thông tin nhạy cảm. }
+  responses:
+    BadRequest:
+      description: Dữ liệu, UUID, pagination hoặc header không hợp lệ
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { code: INVALID_REQUEST, message: 'Dữ liệu không hợp lệ.', traceId: trace-demo-003 } } }
+    Unauthenticated:
+      description: Chưa xác thực hoặc session hết hạn
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { code: UNAUTHENTICATED, message: 'Vui lòng đăng nhập.', traceId: trace-demo-004 } } }
+    Forbidden:
+      description: Không đủ role/ownership hoặc CSRF thiếu/sai
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { code: FORBIDDEN, message: 'Không có quyền thực hiện thao tác.', traceId: trace-demo-005 } } }
+    NotFound:
+      description: Tài nguyên hoặc key không tồn tại trong phạm vi được phép
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { code: NOT_FOUND, message: 'Không tìm thấy tài nguyên.', traceId: trace-demo-006 } } }
+    Conflict:
+      description: Xung đột trạng thái hoặc idempotency key
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { code: STATE_CONFLICT, message: 'Trạng thái không cho phép thao tác.', traceId: trace-demo-007 } } }
+    RateLimited:
+      description: Vượt giới hạn tần suất khi tính năng được triển khai
+      headers: { Retry-After: { schema: { type: integer, minimum: 0 }, description: Số giây trước khi thử lại } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { code: RATE_LIMITED, message: 'Vui lòng thử lại sau.', traceId: trace-demo-008 } } }
+    Unavailable:
+      description: Dịch vụ chưa sẵn sàng hoặc queue đầy khi queue được triển khai
+      headers: { Retry-After: { schema: { type: integer, minimum: 0 }, description: Số giây trước khi thử lại nếu biết } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' }, example: { code: SERVICE_UNAVAILABLE, message: 'Dịch vụ tạm thời chưa sẵn sàng.', traceId: trace-demo-009 } } }
+    Pending:
+      description: Request đang xử lý; tra cứu bằng cùng key và đúng endpoint operation.
+      headers: { Retry-After: { schema: { type: integer, minimum: 1 }, description: Số giây trước khi tra cứu lại } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/Pending' }, example: { status: PENDING, traceId: trace-demo-010 } } }
+  schemas:
+    Error:
+      type: object
+      required: [code, message, traceId]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        traceId: { type: string }
+    Pending:
+      type: object
+      required: [status, traceId]
+      properties:
+        status: { type: string, enum: [PENDING] }
+        traceId: { type: string }
+    EventInput:
+      type: object
+      additionalProperties: false
+      required: [name, description]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: string, maxLength: 5000 }
+    Event:
+      type: object
+      required: [id, name, description]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+    ShowInput:
+      type: object
+      additionalProperties: false
+      required: [startsAt, venue]
+      properties:
+        startsAt: { type: string, format: date-time, example: '2027-06-01T12:00:00Z' }
+        venue: { type: string, minLength: 1, maxLength: 200 }
+    Show:
+      type: object
+      required: [id, eventId, startsAt, venue, status]
+      properties:
+        id: { type: string, format: uuid }
+        eventId: { type: string, format: uuid }
+        startsAt: { type: string, format: date-time }
+        venue: { type: string }
+        status: { type: string, enum: [DRAFT, PUBLISHED, CANCELLED] }
+    Money:
+      type: object
+      description: Số nguyên theo đơn vị nhỏ nhất của currency; không dùng số thực.
+      required: [amount, currency]
+      properties:
+        amount: { type: integer, format: int64, minimum: 0 }
+        currency: { type: string, pattern: '^[A-Z]{3}$', example: VND }
+    SeatSnapshot:
+      type: object
+      required: [showId, capturedAt, version, seats]
+      properties:
+        showId: { type: string, format: uuid }
+        capturedAt: { type: string, format: date-time }
+        version: { type: integer, format: int64, minimum: 0 }
+        seats:
+          type: array
+          items:
+            type: object
+            required: [showSeatId, label, status, price]
+            properties:
+              showSeatId: { type: string, format: uuid }
+              label: { type: string }
+              status: { type: string, enum: [AVAILABLE, HELD, SOLD] }
+              price: { $ref: '#/components/schemas/Money' }
+    CreateReservation:
+      type: object
+      additionalProperties: false
+      required: [showId, showSeatIds]
+      properties:
+        showId: { type: string, format: uuid }
+        showSeatIds:
+          type: array
+          minItems: 1
+          maxItems: 6
+          uniqueItems: true
+          items: { type: string, format: uuid }
+    ReservedSeat:
+      type: object
+      required: [showSeatId, price]
+      properties:
+        showSeatId: { type: string, format: uuid }
+        price: { $ref: '#/components/schemas/Money' }
+    Reservation:
+      type: object
+      required: [id, showId, status, expiresAt, seats, total]
+      properties:
+        id: { type: string, format: uuid }
+        showId: { type: string, format: uuid }
+        status: { type: string, enum: [HELD, CANCELLED, EXPIRED, CONFIRMED] }
+        expiresAt: { type: string, format: date-time }
+        seats: { type: array, items: { $ref: '#/components/schemas/ReservedSeat' } }
+        total: { $ref: '#/components/schemas/Money' }
+    CreateBooking:
+      type: object
+      additionalProperties: false
+      required: [reservationId]
+      properties:
+        reservationId: { type: string, format: uuid }
+    Booking:
+      type: object
+      required: [id, reservationId, status, expiresAt, total]
+      properties:
+        id: { type: string, format: uuid }
+        reservationId: { type: string, format: uuid }
+        status: { type: string, enum: [PENDING, CANCELLED, EXPIRED] }
+        expiresAt: { type: string, format: date-time }
+        total: { $ref: '#/components/schemas/Money' }
+    ReservationRequestResult:
+      type: object
+      description: COMPLETED chứa reservation; FAILED chứa lỗi cuối.
+      oneOf:
+        - required: [reservation]
+          properties: { status: { type: string, enum: [COMPLETED] } }
+        - required: [error]
+          properties: { status: { type: string, enum: [FAILED] } }
+      required: [status]
+      properties:
+        status: { type: string, enum: [COMPLETED, FAILED] }
+        reservation: { $ref: '#/components/schemas/Reservation' }
+        error: { $ref: '#/components/schemas/Error' }
+    BookingRequestResult:
+      type: object
+      description: COMPLETED chứa booking; FAILED chứa lỗi cuối.
+      oneOf:
+        - required: [booking]
+          properties: { status: { type: string, enum: [COMPLETED] } }
+        - required: [error]
+          properties: { status: { type: string, enum: [FAILED] } }
+      required: [status]
+      properties:
+        status: { type: string, enum: [COMPLETED, FAILED] }
+        booking: { $ref: '#/components/schemas/Booking' }
+        error: { $ref: '#/components/schemas/Error' }
+    EventPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Event' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    ShowPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Show' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
+    BookingPage:
+      type: object
+      required: [items, page, size, totalElements]
+      properties:
+        items: { type: array, items: { $ref: '#/components/schemas/Booking' } }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer, format: int64 }
