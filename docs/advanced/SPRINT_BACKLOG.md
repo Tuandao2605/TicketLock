@@ -100,6 +100,8 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 ### ADV-002 — Versioned migration và baseline DB Mini
 
+**Trạng thái: DONE** — đã tự review, kiểm thử DB rỗng và bản sao; DB gốc chưa baseline.
+
 - **P0 · L · Phụ thuộc:** ADV-001.
 - **Quyết định:** Dùng Flyway và SQL versioned; DB cũ chỉ baseline sau khi đối chiếu schema, DB mới chạy toàn bộ migration.
 - **Phạm vi:** chọn Flyway hoặc Liquibase, tạo baseline cho user/refresh hiện có;
@@ -110,7 +112,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 ### ADV-003 — Hợp đồng API và lỗi nghiệp vụ
 
-**Trạng thái: REVIEW** · [OpenAPI draft](api/openapi.yaml) · [Quy tắc API](api/contract.md)
+**Trạng thái: DONE** — đã tự review và validate draft · [OpenAPI draft](api/openapi.yaml) · [Quy tắc API](api/contract.md)
 
 - **P0 · M · Phụ thuộc:** ADV-001.
 - **Quyết định:** Viết OpenAPI 3 YAML thủ công trong `docs/advanced/api/`; đây là hợp đồng dự kiến, không tạo controller giả.
@@ -120,6 +122,8 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
   khác queue full; lỗi không lộ hash/token; customer không tự truyền ownerId để cấp quyền.
 
 ### ADV-004 — CI và môi trường integration test
+
+**Trạng thái: REVIEW** — test trên bản sao cây mã sạch đã chạy; chờ kết quả GitHub Actions trên commit thực tế.
 
 - **P1 · M · Phụ thuộc:** ADV-002, ADV-003.
 - **Quyết định:** Dùng PostgreSQL và Redis service containers trên CI; cấu hình test riêng cũng cho phép chạy với các service local độc lập.

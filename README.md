@@ -154,6 +154,8 @@ Endpoint lab chỉ phục vụ học tập, cần loại bỏ trước khi tri�
 
 ## Kiểm tra và đóng gói
 
+Trước khi chạy test, khởi động service test và đặt các biến trong mục [Kiểm thử CI](#kiểm-thử-ci-với-postgresql-và-redis-riêng). Gradle luôn dùng profile `ci` khi test.
+
 ```bash
 ./backend/gradlew -p backend clean test bootJar
 ```
@@ -261,3 +263,35 @@ Lệnh này giữ dữ liệu demo. Laptop tắt/ngủ hoặc Docker dừng sẽ
 chạy cấu hình này cùng backend local nếu cả hai dùng cùng cổng; frontend demo dùng
 cổng 8088. JWT chưa bật trong demo; `/login` dùng session. Không đổi mật khẩu DB
 sau khi đã tạo volume mà không cập nhật user trong PostgreSQL.
+
+### Kiểm thử CI với PostgreSQL và Redis riêng
+
+Cần Docker Engine + Compose, Java 21, Node 22 và npm. Dịch vụ test dùng cổng
+localhost `15432`/`16380` và dữ liệu trong tmpfs; không dùng volume hoặc dữ liệu
+của ứng dụng. Kiểm tra hai cổng chưa bị sử dụng. Từ thư mục gốc:
+
+```bash
+docker compose -f compose.test.yaml up -d --wait
+export SPRING_PROFILES_INCLUDE=ci
+export TICKETLOCK_TEST_DB_HOST=127.0.0.1 TICKETLOCK_TEST_DB_PORT=15432
+export TICKETLOCK_TEST_DB_NAME=ticketlock_test TICKETLOCK_TEST_DB_USER=ticketlock_test
+export TICKETLOCK_TEST_DB_PASSWORD=ticketlock_test_password
+export TICKETLOCK_TEST_REDIS_HOST=127.0.0.1 TICKETLOCK_TEST_REDIS_PORT=16380
+export TICKETLOCK_TEST_REDIS_PASSWORD=ticketlock_test_password
+export TICKETLOCK_REDIS_TEST=true
+./backend/gradlew -p backend test
+npm --prefix frontend ci
+npm --prefix frontend run build
+```
+
+Đợi `up --wait` báo healthy trước khi chạy test. Profile `ci` yêu cầu đầy đủ các
+biến `TICKETLOCK_TEST_*`; chỉ kết nối service test độc lập. Test JWT tự tạo khóa
+tạm; RedisSessionTests chạy khi `TICKETLOCK_REDIS_TEST=true`. Flyway được chạy
+trên DB test rỗng, Hibernate validate; test migration còn kiểm tra baseline fixture,
+chạy lặp và một migration cố tình sai trong schema test riêng.
+
+Báo cáo backend ở `backend/build/reports/tests/test/index.html` và XML trong
+`backend/build/test-results/test/`. GitHub Actions upload báo cáo khi job kết thúc.
+Khi test xong, dừng các service test bằng `docker compose -f compose.test.yaml down`;
+dữ liệu test trong tmpfs sẽ mất. Không dùng các lệnh này với `compose.yaml` hoặc
+`compose.demo.yaml` vì đó là dữ liệu ứng dụng.

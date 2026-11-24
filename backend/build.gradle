@@ -35,5 +35,7 @@ dependencies {
 }
 
 tasks.named('test') {
+    // Always use explicit test services, even for tests that activate the JWT profile.
+    systemProperty 'spring.profiles.include', 'ci'
     useJUnitPlatform()
 }

@@ -1,6 +1,6 @@
 # Sprint 1 — Nền tảng cho TicketLock Advanced
 
-**Trạng thái:** TODO · **Thời lượng tham khảo:** 2 tuần · **Milestone:** chuẩn bị M1
+**Trạng thái:** REVIEW — chờ kết quả GitHub Actions cho ADV-004 · **Thời lượng tham khảo:** 2 tuần · **Milestone:** chuẩn bị M1
 
 Sprint 1 tạo ranh giới module, đường nâng cấp database, hợp đồng API và môi trường kiểm thử. Đầu ra là nền tảng để bắt đầu Event/Show/Seat ở Sprint 2. Đây là kế hoạch làm việc; các ô chưa đánh dấu không có nghĩa đã được triển khai.
 
@@ -92,7 +92,7 @@ Chốt ai sở hữu dữ liệu và ai được gọi ai trước khi tạo Eve
 
 ## ADV-002 — Migration versioned và nâng cấp DB Mini
 
-**Trạng thái:** REVIEW — hoàn tất triển khai và kiểm thử; chờ review thay đổi ADV-002 · **Ưu tiên:** P0 · **Size:** L · **Phụ thuộc:** ADV-001
+**Trạng thái:** DONE — đã tự review triển khai và bằng chứng test · **Ưu tiên:** P0 · **Size:** L · **Phụ thuộc:** ADV-001
 
 ### Mục tiêu
 
@@ -123,7 +123,7 @@ Database sạch được tạo bằng migration có phiên bản; bản sao DB M
 - Có bằng chứng trường hợp DB cũ sai schema dừng an toàn và hướng dẫn khôi phục. Có quy trình backup/restore đã thử trên dữ liệu test.
 - **Ngoài phạm vi:** chưa tạo bảng Event/Booking, chưa xóa database local.
 
-**Tiến độ:** [Hướng dẫn ADV-002](ADV_002_MIGRATION.md) ghi kết quả DB rỗng và baseline fixture. Đã đối chiếu bản sao DB local và diễn tập backup/restore, đăng nhập, khởi động lại và từ chối DB chưa baseline với fixture giả. Đã kiểm chứng baseline trên bản sao demo, bảo toàn dữ liệu và refresh token giả sau restore. Chờ review thay đổi ADV-002 trước khi đánh dấu DONE.
+**Tiến độ:** [Hướng dẫn ADV-002](ADV_002_MIGRATION.md) ghi kết quả DB rỗng và baseline fixture. Đã đối chiếu bản sao DB local và diễn tập backup/restore, đăng nhập, khởi động lại và từ chối DB chưa baseline với fixture giả. Đã kiểm chứng baseline trên bản sao demo, bảo toàn dữ liệu và refresh token giả sau restore. Đã tự review migration, cấu hình và bằng chứng; DB gốc/demo vẫn cần quy trình riêng khi nâng cấp.
 
 **Bằng chứng hoàn thành:** migration, log đã che thông tin nhạy cảm, kết quả kiểm tra DB rỗng/DB cũ và hướng dẫn nâng cấp.
 
@@ -131,7 +131,7 @@ Database sạch được tạo bằng migration có phiên bản; bản sao DB M
 
 ## ADV-003 — Hợp đồng API và lỗi nghiệp vụ
 
-**Trạng thái:** REVIEW — hợp đồng draft đã validate; chờ review · **Ưu tiên:** P0 · **Size:** M · **Phụ thuộc:** ADV-001
+**Trạng thái:** DONE — draft đã tự review và validate · **Ưu tiên:** P0 · **Size:** M · **Phụ thuộc:** ADV-001
 
 ### Mục tiêu
 
@@ -167,7 +167,7 @@ Viết hợp đồng có thể review trước khi code Event/Reservation, bao g
 
 ## ADV-004 — CI và môi trường kiểm thử tích hợp
 
-**Trạng thái:** TODO · **Ưu tiên:** P1 · **Size:** M · **Phụ thuộc:** ADV-002, ADV-003
+**Trạng thái:** REVIEW — local đã kiểm thử; chờ chạy GitHub Actions và review dependency · **Ưu tiên:** P1 · **Size:** M · **Phụ thuộc:** ADV-002, ADV-003
 
 ### Mục tiêu
 
@@ -180,11 +180,11 @@ Từ clone sạch, tự động build và kiểm tra backend/frontend với Post
 
 ### Việc cần làm
 
-- [ ] Ghi điều kiện Docker, Java 21, Node theo `frontend/package.json` và Gradle Wrapper.
-- [ ] Tạo cấu hình test với DB test và namespace Redis test riêng; không dùng cookie/session hoặc dữ liệu ứng dụng local. Không log credentials.
-- [ ] Bổ sung workflow phù hợp repository: build frontend, backend test, migrate DB sạch và validate schema; cache dependency nếu cần nhưng không cache secrets/DB.
-- [ ] Đưa bài test migration từ ADV-002 vào luồng có thể chạy lặp; nếu cần DB legacy fixture thì dùng dữ liệu giả đã xác định.
-- [ ] Ghi lệnh chạy local và điều kiện services healthy trong README; chỉ ra artifact báo cáo lỗi để debug.
+- [x] Ghi điều kiện Docker, Java 21, Node theo `frontend/package.json` và Gradle Wrapper.
+- [x] Tạo cấu hình test với DB test và namespace Redis test riêng; không dùng cookie/session hoặc dữ liệu ứng dụng local. Không log credentials.
+- [x] Bổ sung workflow phù hợp repository: build frontend, backend test, migrate DB sạch và validate schema; cache dependency nếu cần nhưng không cache secrets/DB.
+- [x] Đưa bài test migration từ ADV-002 vào luồng có thể chạy lặp; nếu cần DB legacy fixture thì dùng dữ liệu giả đã xác định.
+- [x] Ghi lệnh chạy local và điều kiện services healthy trong README; chỉ ra artifact báo cáo lỗi để debug.
 - [ ] Thử trên branch/test fixture cố tình sai migration hoặc invariant, ghi bằng chứng pipeline thất bại; hoàn nguyên thay đổi lỗi trước khi merge.
 
 ### Kết quả và nghiệm thu
@@ -194,17 +194,17 @@ Từ clone sạch, tự động build và kiểm tra backend/frontend với Post
 - Chạy lại pipeline không phụ thuộc thứ tự hay dữ liệu phiên cũ. Ghi lại các bài cần Docker và cách chạy riêng nếu có.
 - **Ngoài phạm vi:** chưa cần cluster Kafka, benchmark CI hay production deployment.
 
-**Bằng chứng hoàn thành:** workflow, lệnh local, kết quả xanh và một lần kiểm tra pipeline phát hiện lỗi có chủ đích.
+**Bằng chứng local (24/11/2026):** 29 test backend thành công, gồm kiểm thử Redis nhiều instance và 3 test migration; `npm ci` và build frontend thành công. Chỉ định migration V1 giả sai qua `SPRING_FLYWAY_LOCATIONS` khiến test context thất bại với `FlywayValidateException`, rồi chạy lại bộ test bình thường thành công. Review bổ sung: bản sao cây mã hiện tại không có `.env`, build cache hay node_modules đã chạy 29 test backend và build frontend thành công; đã chạy lại với Redis không mật khẩu tương tự service GitHub Actions. Đây không phải clone từ commit hoặc lượt chạy GitHub Actions; ticket chưa DONE. Xem [README](../../../README.md#kiểm-thử-ci-với-postgresql-và-redis-riêng) và `.github/workflows/ci.yml`.
 
 ---
 
 ## Review cuối Sprint 1
 
 - [x] ADV-001 DONE: ADR được review, trách nhiệm và invariant nhất quán.
-- [ ] ADV-002 DONE: migration DB sạch + nâng cấp bản sao DB cũ thành công, không mất dữ liệu test.
-- [ ] ADV-003 DONE: OpenAPI draft hợp lệ, authorization/idempotency/lỗi được giải thích.
+- [x] ADV-002 DONE: migration DB sạch + nâng cấp bản sao DB cũ thành công, không mất dữ liệu test.
+- [x] ADV-003 DONE: OpenAPI draft hợp lệ, authorization/idempotency/lỗi được giải thích.
 - [ ] ADV-004 DONE: CI dùng PostgreSQL/Redis test độc lập và bắt được lỗi có chủ đích.
-- [ ] README chỉ đúng cách khởi động và kiểm tra; các thay đổi Mini đang có được bảo toàn.
+- [x] README chỉ đúng cách khởi động và kiểm tra; các thay đổi Mini đang có được bảo toàn.
 - [ ] Ghi thời gian thực tế, vấn đề, quyết định và ticket chuyển sprint. Chỉ bắt đầu ADV-005 khi ADV-002 đã hoàn thành.
 
 Mẫu ghi ticket khi làm:
