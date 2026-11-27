@@ -209,14 +209,14 @@ function Login() {
 
   return (
     <main>
-      <p className="brand">TICKETLOCK</p>
+      <p className="brand">ORBIT TICKETS</p>
       {user ? <>
         <h1>Đăng nhập thành công</h1>
         <p>Xin chào, <strong>{user.username}</strong>.</p>
         <button onClick={logout} disabled={busy}>{busy ? 'Đang xử lý…' : 'Đăng xuất'}</button>
       </> : <>
         <h1>Chào mừng trở lại</h1>
-        <p>Đăng nhập để tiếp tục với TicketLock.</p>
+        <p>Đăng nhập để tiếp tục với Orbit Tickets.</p>
         <form onSubmit={submit}>
           <label htmlFor="login-email">Email</label>
           <input id="login-email" type="email" autoComplete="username" required maxLength={254}
@@ -275,9 +275,9 @@ function Registration() {
 
   return (
     <main>
-      <p className="brand">TICKETLOCK</p>
+      <p className="brand">ORBIT TICKETS</p>
       <h1>Tạo tài khoản</h1>
-      <p>Đăng ký tài khoản khách hàng để bắt đầu đặt vé.</p>
+      <p>Tạo tài khoản để sẵn sàng khám phá các sự kiện giữa những vì sao.</p>
       <form onSubmit={submit}>
         <label htmlFor="email">Email</label>
         <input id="email" type="email" autoComplete="email" required maxLength={254}

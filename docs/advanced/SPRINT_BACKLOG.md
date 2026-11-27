@@ -32,7 +32,9 @@ khối lượng. Nếu chỉ có 10–15 giờ/tuần, kéo dài hoặc giảm s
 - `P2`: mở rộng, chỉ lấy khi P0/P1 đã xong.
 - `S/M/L`: độ lớn tương đối, dự kiến tối đa khoảng 1/2/4 ngày làm việc tập trung;
   chưa gồm thời gian học công nghệ. Ticket vượt L cần tách trước khi bắt đầu.
-- Sprint là thứ tự mục tiêu. Không kéo ticket chưa đủ dependency vào làm để chạy kịp lịch.
+- Với lộ trình chính ADV-001–ADV-048, làm và nghiệm thu theo thứ tự mã: ticket trước phải DONE mới bắt đầu ticket kế tiếp, kể cả khi dependency kỹ thuật chỉ liệt kê một tập nhỏ. Dependency được ghi tại từng ticket vẫn là điều kiện bổ sung, không thay thế quy tắc tuần tự này. Mã ADV-049 trở đi là backlog tùy chọn sau M4.
+- Nghiệm thu một ticket chỉ dùng phần đã có trong ticket đó và các ticket DONE trước đó. Có thể dùng fake/test double tại ranh giới chưa triển khai, nhưng phải ghi rõ giới hạn và không đưa fake thành chức năng production. Tích hợp thật, kiểm thử end-to-end và invariant mới thuộc ticket sau phải có tiêu chí riêng ở ticket đó.
+- Sprint chỉ kết thúc khi các ticket của sprint đã DONE. Nếu không đủ sức chứa, điều chỉnh lịch hoặc chuyển phần chưa bắt đầu sau khi đánh giá dependency; không đánh dấu ticket hoặc sprint DONE chỉ để kịp lịch. Không đưa functionality cần kiểm tra sang ticket sau rồi vẫn giữ nó như tiêu chí chặn ticket trước.
 - Không đặt mục tiêu throughput trước baseline. Không lấy JMH làm bằng chứng latency HTTP.
 
 Mỗi ticket có người phụ trách, trạng thái TODO/IN_PROGRESS/REVIEW/DONE và liên kết PR
@@ -60,7 +62,7 @@ khi được đưa vào công cụ quản lý. Không gán DONE chỉ vì đã v
 - **M3 — cuối sprint 10:** luồng phân tán charge/confirm/refund/ticket/check-in.
 - **M4 — cuối sprint 12:** phục hồi, vận hành và bằng chứng demo có thể tái lập.
 
-Các quyết định trong từng ticket là hướng triển khai mặc định cho lộ trình này, không khẳng định chức năng đã tồn tại. Khi thực tế hoặc kết quả benchmark bác bỏ một quyết định, ghi lý do và tác động vào ADR/ticket liên quan trước khi đổi hướng; cập nhật các ticket phụ thuộc.
+Các quyết định trong từng ticket là hướng triển khai mặc định cho lộ trình này, không khẳng định chức năng đã tồn tại. Khi thực tế hoặc kết quả benchmark bác bỏ một quyết định, ghi lý do và tác động vào ADR/ticket liên quan trước khi đổi hướng; cập nhật các ticket phụ thuộc. Các endpoint và tính năng của ticket sau chỉ là dự kiến cho đến khi chính ticket đó hoàn thành.
 
 ## 4. Definition of Ready và Definition of Done
 
@@ -123,7 +125,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 ### ADV-004 — CI và môi trường integration test
 
-**Trạng thái: REVIEW** — test trên bản sao cây mã sạch đã chạy; chờ kết quả GitHub Actions trên commit thực tế.
+**Trạng thái: DONE** — test local thành công và GitHub Actions CI #1 của commit `3c59692` xanh theo ảnh người dùng.
 
 - **P1 · M · Phụ thuộc:** ADV-002, ADV-003.
 - **Quyết định:** Dùng PostgreSQL và Redis service containers trên CI; cấu hình test riêng cũng cho phép chạy với các service local độc lập.
@@ -136,30 +138,33 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 ## Sprint 2 — Event, Show và ghế
 
+[Thứ tự, tiêu chí đóng và kế hoạch giữ tiến trình](sprint-02/SPRINT_02.md).
+
 ### ADV-005 — Event/Show schema và trạng thái publish
 
+**Trạng thái: REVIEW** — [triển khai và điều kiện review độc lập](sprint-02/ADV_005_EVENT_SHOW.md); cần review ADV-005 trước khi tiếp tục review ADV-006.
+
 - **P0 · M · Phụ thuộc:** ADV-002.
-- **Quyết định:** Event và Show là hai aggregate; mỗi Show có trạng thái DRAFT, PUBLISHED hoặc CANCELLED và thời gian UTC.
-- **Phạm vi:** event là nội dung sự kiện, show là một suất có thời gian/địa điểm và
-  sơ đồ ghế riêng; DRAFT/PUBLISHED/CANCELLED; thời gian dùng Instant/UTC trong backend.
-- **Nghiệm thu:** không publish show có thời gian hoặc dữ liệu bắt buộc sai; reservation
-  gắn showId; migration và DTO không trả entity trực tiếp; sau khi mở bán không thêm, xóa, đổi định danh hay bố trí ghế của Show, kể cả thay đổi gián tiếp qua layout dùng chung.
+- **Quyết định:** Event và Show là hai aggregate; Show dùng DRAFT/PUBLISHED/CANCELLED và thời gian UTC. Publish chỉ thành công khi port kiểm tra layout báo hợp lệ; khóa Show và lưu mốc mở bán trong transaction.
+- **Phạm vi:** schema Event/Show, DTO, validation và chuyển trạng thái nội bộ; kiểm tra layout qua port. Chưa xây layout, reservation hoặc endpoint HTTP.
+- **Nghiệm thu độc lập:** migration chạy trên DB sạch và nâng cấp DB V1; không publish với dữ liệu/thời gian sai, layout chưa sẵn sàng hoặc trạng thái không hợp lệ; publish thành công với test double layout hợp lệ và ghi mốc khóa; hủy không xóa mốc. Không trả entity trực tiếp qua DTO. Chưa công khai endpoint dựa trên test double.
+- **Bàn giao tiếp:** ADV-006 thực thi port bằng layout thật và kiểm thử khóa sơ đồ, kể cả layout dùng chung. ADV-009 tạo reservation gắn showId và tự kiểm thử liên kết đó.
 
 ### ADV-006 — Ghế và trạng thái hiện tại theo show
+
+**Trạng thái: REVIEW (đã triển khai sớm)** · [Chi tiết ADV-006](sprint-02/ADV_006_SEAT_INVENTORY.md) — giữ nguyên code; chỉ review/đóng sau ADV-005 DONE.
 
 - **P0 · L · Phụ thuộc:** ADV-005.
 - **Quyết định:** Lưu layout Seat thuộc Event và một ShowSeat cho mỗi ghế của từng Show; PostgreSQL là nguồn sự thật trạng thái.
 - **Phạm vi:** Seat, ShowSeat; unique `(showId, seatId)`; trạng thái AVAILABLE/HELD/SOLD,
   reservation hiện hành, deadline và version; lịch sử tách khỏi record trạng thái.
-- **Nghiệm thu:** ghế trùng trong cùng show bị DB chặn; cùng seat layout có thể được dùng
-  bởi hai show độc lập; import layout không tạo ghế mồ côi; có seed demo có thể chạy lại.
+- **Nghiệm thu:** ghế trùng trong cùng show và ghế thuộc sai Event bị DB chặn; cùng seat layout có thể dùng bởi hai show độc lập; import rollback toàn bộ khi lỗi, không tạo ghế mồ côi; seed demo chạy lại được. Tích hợp port publish thật: layout rỗng bị từ chối, layout hợp lệ publish được; race import/publish và layout dùng chung không làm đổi show đã mở bán. Chưa cần reservation hay API HTTP.
 
 ### ADV-007 — API quản trị và đọc sơ đồ ghế
 
 - **P0 · M · Phụ thuộc:** ADV-003, ADV-005, ADV-006.
 - **Quyết định:** Tách API quản trị ADMIN và API đọc công khai; chỉ trả show đã publish và snapshot không chứa owner; layout version/snapshot không làm thay đổi Show đã mở bán.
-- **Phạm vi:** ADMIN tạo/publish show; public xem show PUBLISHED; snapshot ghế có thời
-  điểm/version và không công bố danh tính người giữ ghế.
+- **Phạm vi:** bổ sung cấu hình giá ghế/currency do ADMIN quản lý và dữ liệu test/seed phù hợp trước khi publish; triển khai ADMIN tạo/publish show, public xem show PUBLISHED. Snapshot ghế trả giá tham khảo, thời điểm/version, không công bố danh tính người giữ ghế. Publish chỉ cho phép khi layout và giá bắt buộc hợp lệ; cập nhật kiểm tra readiness và contract tương ứng trong ticket này.
 - **Nghiệm thu:** CUSTOMER không sửa show; DRAFT không lộ qua public API; snapshot không
   hứa giữ ghế cho client; token/session phải qua đúng filter chain đã quy định.
 
@@ -180,8 +185,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 - **P0 · L · Phụ thuộc:** ADV-006, ADV-007.
 - **Quyết định:** Dùng transaction PostgreSQL và khóa ShowSeat theo thứ tự ID tăng dần; mặc định hold 10 phút, giới hạn nhóm bằng cấu hình.
-- **Phạm vi:** giữ 1..N ghế trong 10 phút, giới hạn N được cấu hình; khóa hàng theo thứ
-  tự ổn định hoặc conditional update tương đương; lưu snapshot giá từng ghế và currency do server xác định trong cùng transaction; không gọi provider trong transaction.
+- **Phạm vi:** tạo reservation gắn showId và giữ 1..N ghế trong 10 phút qua service nội bộ; owner là UUID do caller tin cậy truyền sau xác thực. Khóa hàng theo thứ tự ổn định hoặc conditional update tương đương; lưu snapshot giá/currency đã cấu hình tại ADV-007 trong cùng transaction; không gọi provider trong transaction. Chưa công khai endpoint giữ ghế khi idempotency/authorization ADV-011–012 chưa hoàn tất.
 - **Nghiệm thu:** nhiều request cùng ghế chỉ một hold hợp lệ thắng; thiếu một ghế thì
   cả nhóm rollback; seat trùng/sai show bị từ chối; response chỉ thành công sau commit. Giá niêm yết đổi sau hold không đổi snapshot; quy trình giá đổi trước hold và xác nhận thanh toán được chốt ở ADV-003.
 
@@ -199,8 +203,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 - **P0 · M · Phụ thuộc:** ADV-009, ADV-003.
 - **Quyết định:** Lưu key, fingerprint và kết quả trong PostgreSQL theo principal + operation + key; retry cùng payload dùng lại kết quả.
-- **Phạm vi:** lưu request fingerprint và kết quả bền theo principal + operation + key;
-  quy định thời hạn record và response khi thao tác đang xử lý.
+- **Phạm vi:** lưu request fingerprint và kết quả bền theo principal + operation + key; quy định thời hạn record và response khi thao tác đang xử lý. Triển khai endpoint tạo/tra cứu kết quả theo key có xác thực, role CUSTOMER, CSRF và phạm vi owner từ principal; không công khai read/cancel reservation tổng quát trước ADV-012.
 - **Nghiệm thu:** retry cùng key/payload trả cùng reservation; cùng key khác payload
   nhận conflict; hai request đồng thời không tạo hai hold; timeout sau commit có API
   truy vấn/retry kết quả, không tự đổi key rồi đặt thêm.
@@ -209,8 +212,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 - **P0 · M · Phụ thuộc:** ADV-010, ADV-011, ADV-004.
 - **Quyết định:** Áp dụng ownership cho customer ở service; ADMIN không mặc nhiên vượt ownership; dùng PostgreSQL thật cho bài test race.
-- **Phạm vi:** customer chỉ đọc/hủy hold của mình; lấy owner từ principal. Thêm kiểm
-  thử nhiều request tranh một ghế và hai nhóm ghế giao nhau trên DB thật.
+- **Phạm vi:** bổ sung endpoint đọc/hủy reservation và kiểm tra customer chỉ đọc/hủy hold của mình; lấy owner từ principal, kiểm tra CSRF cho thao tác thay đổi. Thêm kiểm thử nhiều request tranh một ghế và hai nhóm ghế giao nhau trên DB thật.
 - **Nghiệm thu:** user B không đọc/hủy reservation A; role ADMIN không tự bypass ownership
   nếu chưa có policy; kiểm thử khẳng định số hold hợp lệ, rollback và version sau cuộc đua.
 
@@ -304,8 +306,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 - **P0 · M · Phụ thuộc:** ADV-020, ADV-015.
 - **Quyết định:** Định tuyến showId tới tập worker hữu hạn; dùng feature flag và giữ baseline làm mặc định đến khi có bằng chứng.
-- **Phạm vi:** showId định tuyến tới số worker hữu hạn; command Hold/Release/Expire/Confirm;
-  feature flag chọn baseline hoặc engine được ADR chấp nhận.
+- **Phạm vi:** showId định tuyến tới số worker hữu hạn; command Hold/Release/Expire/Confirm; feature flag chọn baseline hoặc engine được ADR chấp nhận. Kiểm thử routing, giới hạn worker và validation với adapter/fixture test; chưa thay thế đường ghi production trước ADV-022.
 - **Nghiệm thu:** cùng show không có hai writer trong process; không tạo thread cho từng
   ghế; deadline/owner/version kiểm tra trên writer; metrics queue depth có giới hạn cardinality.
 
@@ -344,8 +345,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 - **P0 · L · Phụ thuộc:** ADV-024.
 - **Quyết định:** Dùng PostgreSQL làm authoritative store cho lease và fencing token tăng dần; thời gian lease dựa trên đồng hồ DB.
-- **Phạm vi:** chọn cơ chế lease có authoritative store, TTL/renewal, token đơn điệu;
-  không dùng một Redis SETNX đơn giản thay toàn bộ fencing protocol.
+- **Phạm vi:** lease trên PostgreSQL có TTL/renewal và token đơn điệu; kiểm thử cấp/renew/tiếp quản trên bảng lease độc lập, mất lease thì dừng nhận lệnh. Không tuyên bố đã chặn stale DB write: tích hợp token với transaction nghiệp vụ và kiểm thử fencing thuộc ADV-026.
 - **Nghiệm thu:** mọi lần tiếp quản có token mới; reconnect không hồi sinh quyền owner cũ;
   mất lease thì ngừng nhận lệnh partition; mô tả rõ clock/renewal/failure assumptions.
 
@@ -431,9 +431,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 - **Phạm vi:** provider giả lập charge/refund/query, operation ID bền và idempotency;
   giả lập success/failure/delay/timeout sau charge; tiền dùng minor units + currency,
   số tiền lấy từ snapshot lúc hold do server lưu (bổ sung migration giá nếu chưa có); không tin giá client gửi.
-- **Nghiệm thu:** cùng operation không charge hai lần; không gọi provider trong DB
-  transaction kéo dài; crash sau provider success trước local save được query/reconcile;
-  timeout giữ UNKNOWN/PENDING thay vì khẳng định thất bại.
+- **Nghiệm thu:** cùng operation không charge hai lần; không gọi provider trong DB transaction kéo dài; crash sau provider success trước local save được truy vấn và khôi phục bằng API/service test do ticket này cung cấp; timeout giữ UNKNOWN/PENDING thay vì khẳng định thất bại. Job tự động quét định kỳ thuộc ADV-041, không chặn nghiệm thu ADV-033.
 
 ### ADV-034 — Orchestrator bền cho happy path
 
@@ -441,8 +439,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 - **Quyết định:** Booking điều phối Saga bền trong DB; ghi state và outgoing command cùng transaction, Inventory là bên xác nhận SOLD.
 - **Phạm vi:** SagaInstance/Step, version/deadline/nextRetryAt; HELD → PAYMENT_PENDING →
   CONFIRMING → ISSUING; state và outgoing command ghi cùng transaction.
-- **Nghiệm thu:** user chỉ checkout booking của mình; PaymentSucceeded đúng operation
-  mới kích confirm; restart từng bước tiếp tục từ DB; chỉ Inventory xác nhận SOLD.
+- **Nghiệm thu:** user chỉ checkout booking của mình; PaymentSucceeded đúng operation mới kích confirm; restart từng bước tiếp tục từ DB; chỉ Inventory xác nhận SOLD. Kiểm thử đến trạng thái ISSUING và command phát vé bằng test double/sink test; không tạo TicketIssued giả trong production. Ticket thật và COMPLETED thuộc ADV-037.
 
 ### ADV-035 — Compensation release và refund
 
@@ -460,9 +457,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 - **Quyết định:** Hiển thị pending và refund pending theo trạng thái server; polling hữu hạn và kiểm thử duplicate, delay, restart.
 - **Phạm vi:** API/UI hiển thị pending/refund pending/cancelled rõ; refresh trạng thái
   theo lịch hữu hạn; fault injection message duplicate/delay/out-of-order và kill orchestrator.
-- **Nghiệm thu:** UI không thông báo thanh toán thất bại khi kết quả còn UNKNOWN;
-  mỗi kịch bản có trạng thái tiền/ghế/booking mong đợi; retry/restart không sinh Saga kép;
-  chưa hoàn tất booking khi Ticket chưa xác nhận phát vé.
+- **Nghiệm thu:** UI không thông báo thanh toán thất bại khi kết quả còn UNKNOWN; mỗi kịch bản có trạng thái tiền/ghế/booking mong đợi; retry/restart không sinh Saga kép; booking dừng ở ISSUING khi chưa có xác nhận vé. Dùng test double/sink test cho Ticket; phát vé thật thuộc ADV-037.
 
 **Sprint exit:** charge/confirm/refund đúng với sandbox; ISSUING chờ Ticket sprint 10.
 
@@ -616,8 +611,7 @@ Redis session vẫn là mặc định cho portal trong mọi phương án mở r
 
 ## 6. Ticket nên bắt đầu ngay
 
-Bắt đầu **ADV-001**, sau đó ADV-002 và ADV-003; đưa ADV-004 vào sau khi schema/API nền
-đủ rõ. Không bắt đầu Disruptor hoặc Kafka trước khi có baseline ghế/hold đúng để so sánh.
+Tiến trình hiện tại: review và đóng **ADV-005**, sau đó review **ADV-006**, rồi bắt đầu ADV-007. ADV-001–004 đã DONE. Không bắt đầu Disruptor hoặc Kafka trước khi có baseline ghế/hold đúng để so sánh.
 
 Mẫu issue để sao chép:
 
