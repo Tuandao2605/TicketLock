@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getCsrf, readJson } from './api';
+import SiteHeader from './SiteHeader';
 
 export default function Profile() {
   const [state, setState] = useState({ status: 'loading' });
@@ -11,6 +12,7 @@ export default function Profile() {
     fetch('/api/users/me', { credentials: 'same-origin', headers: { Accept: 'application/json' }, cache: 'no-store', signal: controller.signal })
       .then(async response => {
         if (response.status === 401) { setState({ status: 'guest' }); return; }
+        if (response.status === 403) { setState({ status: 'forbidden' }); return; }
         if (!response.ok) throw new Error('Không thể tải hồ sơ. Vui lòng thử lại.');
         setState({ status: 'ready', user: await readJson(response) });
       })
@@ -35,14 +37,15 @@ export default function Profile() {
   const user = state.user;
   const createdAt = user?.createdAt ? new Date(user.createdAt) : null;
   const date = createdAt && !Number.isNaN(createdAt.getTime()) ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'long' }).format(createdAt) : '—';
-  return <div className="profile-shell">
-    <header className="profile-header"><a href="/" className="dashboard-logo"><span className="logo-mark">✦</span><span>ORBIT <span>TICKETS</span></span></a><a className="profile-back" href="/">← Quay lại trang chủ</a></header>
+  return <div className="profile-shell events-shell">
+    <SiteHeader current="profile" layout="sidebar" session={state.status === 'ready' ? { status: 'signed-in', user: { username: user.email } } : { status: state.status }} />
     <main className="profile-main">
       <p className="profile-eyebrow">TÀI KHOẢN CỦA BẠN <span>✦</span></p>
       <h1>Hồ sơ cá nhân</h1>
       <p className="profile-intro">Thông tin tài khoản của bạn tại Orbit Tickets.</p>
       {state.status === 'loading' && <p role="status">Đang tải hồ sơ…</p>}
       {state.status === 'guest' && <div className="profile-message"><h2>Bạn chưa đăng nhập</h2><p>Đăng nhập để xem thông tin tài khoản của bạn.</p><a className="dash-button primary" href="/login">Đăng nhập →</a></div>}
+      {state.status === 'forbidden' && <div className="profile-message"><p className="error" role="alert">Bạn không có quyền xem tài khoản này.</p></div>}
       {state.status === 'error' && <div className="profile-message"><p className="error" role="alert">{state.message}</p><button type="button" onClick={() => window.location.reload()}>Thử lại</button></div>}
       {state.status === 'ready' && <section className="profile-card" aria-label="Thông tin tài khoản">
         <div className="profile-identity"><div className="profile-avatar" aria-hidden="true">{user.email?.charAt(0).toUpperCase() || '✦'}</div><div><span className="profile-label">TÀI KHOẢN ORBIT TICKETS</span><h2>{user.email}</h2><span className="profile-role">{user.role === 'ADMIN' ? 'Quản trị viên' : user.role === 'CUSTOMER' ? 'Khách hàng' : user.role}</span></div></div>

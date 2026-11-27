@@ -4,6 +4,25 @@ import './style.css';
 import { getCsrf, readJson } from './api';
 import Profile from './Profile';
 import Dashboard from './Dashboard';
+import EventsPage from './EventsPage';
+import { resolvePage } from './routes';
+
+function CosmicAtmosphere() {
+  useEffect(() => {
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('scroll-revealed');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.hero-content, .discover-section, .events-intro, .explorer-layout, .profile-main').forEach(element => observer.observe(element));
+    return () => observer.disconnect();
+  }, []);
+  return <div className="cosmic-atmosphere" aria-hidden="true"><div className="nebula-image"/><div className="nebula-haze"/><div className="star-layer stars-far"/><div className="star-layer stars-near"/><span className="meteor meteor-one"/><span className="meteor meteor-two"/><span className="meteor meteor-three"/></div>;
+}
 
 function ShootingStarTrail() {
   useEffect(() => {
@@ -294,6 +313,8 @@ function Registration() {
   );
 }
 
+const pathname = resolvePage(window.location.pathname);
+
 createRoot(document.getElementById('root')).render(
-  <><GravityStars /><ShootingStarTrail />{window.location.pathname === '/register' ? <Registration /> : window.location.pathname === '/login' ? <Login /> : window.location.pathname === '/profile' ? <Profile /> : <Dashboard />}</>,
+  <><CosmicAtmosphere /><GravityStars /><ShootingStarTrail />{pathname === '/register' ? <Registration /> : pathname === '/login' ? <Login /> : pathname === '/profile' ? <Profile /> : pathname === '/events' ? <EventsPage /> : pathname === '/' ? <Dashboard /> : <main><p className="brand">ORBIT TICKETS</p><h1>Không tìm thấy trang</h1><p>Đường dẫn này không tồn tại hoặc đã thay đổi.</p><a href="/">Về trang chủ</a></main>}</>,
 );

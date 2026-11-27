@@ -281,6 +281,7 @@ export TICKETLOCK_TEST_REDIS_PASSWORD=ticketlock_test_password
 export TICKETLOCK_REDIS_TEST=true
 ./backend/gradlew -p backend test
 npm --prefix frontend ci
+npm --prefix frontend test
 npm --prefix frontend run build
 ```
 

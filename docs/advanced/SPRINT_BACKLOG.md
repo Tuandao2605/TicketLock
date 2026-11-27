@@ -32,7 +32,7 @@ khối lượng. Nếu chỉ có 10–15 giờ/tuần, kéo dài hoặc giảm s
 - `P2`: mở rộng, chỉ lấy khi P0/P1 đã xong.
 - `S/M/L`: độ lớn tương đối, dự kiến tối đa khoảng 1/2/4 ngày làm việc tập trung;
   chưa gồm thời gian học công nghệ. Ticket vượt L cần tách trước khi bắt đầu.
-- Với lộ trình chính ADV-001–ADV-048, làm và nghiệm thu theo thứ tự mã: ticket trước phải DONE mới bắt đầu ticket kế tiếp, kể cả khi dependency kỹ thuật chỉ liệt kê một tập nhỏ. Dependency được ghi tại từng ticket vẫn là điều kiện bổ sung, không thay thế quy tắc tuần tự này. Mã ADV-049 trở đi là backlog tùy chọn sau M4.
+- Với lộ trình chính ADV-001–ADV-048 (bao gồm ADV-008A sau ADV-008), làm và nghiệm thu theo thứ tự: ticket trước phải DONE mới bắt đầu ticket kế tiếp, kể cả khi dependency kỹ thuật chỉ liệt kê một tập nhỏ. Dependency được ghi tại từng ticket vẫn là điều kiện bổ sung, không thay thế quy tắc tuần tự này. Mã ADV-049 trở đi là backlog tùy chọn sau M4.
 - Nghiệm thu một ticket chỉ dùng phần đã có trong ticket đó và các ticket DONE trước đó. Có thể dùng fake/test double tại ranh giới chưa triển khai, nhưng phải ghi rõ giới hạn và không đưa fake thành chức năng production. Tích hợp thật, kiểm thử end-to-end và invariant mới thuộc ticket sau phải có tiêu chí riêng ở ticket đó.
 - Sprint chỉ kết thúc khi các ticket của sprint đã DONE. Nếu không đủ sức chứa, điều chỉnh lịch hoặc chuyển phần chưa bắt đầu sau khi đánh giá dependency; không đánh dấu ticket hoặc sprint DONE chỉ để kịp lịch. Không đưa functionality cần kiểm tra sang ticket sau rồi vẫn giữ nó như tiêu chí chặn ticket trước.
 - Không đặt mục tiêu throughput trước baseline. Không lấy JMH làm bằng chứng latency HTTP.
@@ -172,6 +172,8 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 ### ADV-008 — Giao diện danh sách show và sơ đồ ghế
 
+**Trạng thái: REVIEW** · [Chi tiết ADV-008](sprint-02/ADV_008_SHOW_UI.md).
+
 - **P1 · M · Phụ thuộc:** ADV-007.
 - **Quyết định:** Dùng React và session hiện tại; tải snapshot qua HTTP, chưa thêm realtime hay đặt ghế.
 - **Phạm vi:** React dùng session/CSRF hiện có; list/detail, trạng thái loading/error,
@@ -179,13 +181,23 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 - **Nghiệm thu:** chọn đúng show và seat ID; xử lý 401/403; không chỉ dựa vào menu ẩn
   để bảo vệ admin; không dùng countdown/client state làm bằng chứng ghế vẫn còn.
 
-**Sprint exit:** tạo show, publish và xem snapshot ghế bằng UI/API.
+### ADV-008A — Trang Sự kiện và Tài khoản riêng
+
+**Trạng thái: REVIEW** — [chi tiết ADV-008A](sprint-02/ADV_008A_NAVIGATION.md) · **P1 · M · Phụ thuộc:** ADV-008.
+
+- **Vấn đề:** menu “Sự kiện” và “Tài khoản” hiện cuộn tới các phần trên trang chủ; `/profile` đã có nhưng chưa được dùng cho mục Tài khoản trên menu.
+- **Quyết định:** “Khám phá” mở trang chủ `/`; “Sự kiện” mở trang `/events` riêng với danh sách Event, Show và snapshot ghế từ ADV-008; “Tài khoản” mở `/profile` hiện có. Các trang giữ giao diện Orbit Tickets và dùng session hiện tại.
+- **Phạm vi:** tách/di chuyển EventExplorer thành trang Sự kiện, liên kết điều hướng rõ trạng thái đang chọn, hỗ trợ desktop/mobile, điều hướng quay về và tải lại trực tiếp `/events`, `/profile` qua Vite/Nginx. Khách chưa đăng nhập vào Tài khoản được hướng dẫn đăng nhập; xử lý trạng thái loading, lỗi, 401/403 theo hành vi từng API. Không tạo dữ liệu sự kiện giả hay bổ sung thanh toán/giữ vé.
+- **Nghiệm thu:** ba mục mở đúng ba trang, không chỉ cuộn anchor; làm mới/deep-link không trả 404; chọn đúng show/showSeat ID, các trạng thái ghế và cảnh báo snapshot từ ADV-008 vẫn hoạt động. Guest và người đã đăng nhập truy cập Tài khoản đúng trạng thái; menu khả dụng ở mobile, kiểm thử bằng bàn phím và không dựa vào menu ẩn để bảo vệ API. Test frontend và build xanh; kiểm tra trình duyệt desktop/mobile với backend test hoặc fixture, không dùng DB thật.
+- **Ngoài phạm vi:** giao diện form quản trị tạo/sửa Event/Show và dashboard quản lý đặt vé chưa được ticket này hứa triển khai; cần ticket riêng với API cần thiết khi được chọn.
+
+**Sprint exit:** tạo show, publish và xem snapshot ghế bằng UI/API; các mục Khám phá/Sự kiện/Tài khoản điều hướng đúng trang.
 
 ## Sprint 3 — Reservation đúng và bền
 
 ### ADV-009 — Hold nhóm ghế bằng transaction PostgreSQL
 
-- **P0 · L · Phụ thuộc:** ADV-006, ADV-007.
+- **P0 · L · Phụ thuộc:** ADV-006, ADV-007, ADV-008A.
 - **Quyết định:** Dùng transaction PostgreSQL và khóa ShowSeat theo thứ tự ID tăng dần; mặc định hold 10 phút, giới hạn nhóm bằng cấu hình.
 - **Phạm vi:** tạo reservation gắn showId và giữ 1..N ghế trong 10 phút qua service nội bộ; owner là UUID do caller tin cậy truyền sau xác thực. Khóa hàng theo thứ tự ổn định hoặc conditional update tương đương; lưu snapshot giá/currency đã cấu hình tại ADV-007 trong cùng transaction; không gọi provider trong transaction. Chưa công khai endpoint giữ ghế khi idempotency/authorization ADV-011–012 chưa hoàn tất.
 - **Nghiệm thu:** nhiều request cùng ghế chỉ một hold hợp lệ thắng; thiếu một ghế thì
@@ -613,7 +625,7 @@ Redis session vẫn là mặc định cho portal trong mọi phương án mở r
 
 ## 6. Ticket nên bắt đầu ngay
 
-Tiến trình hiện tại: ADV-001–006 đã DONE; bắt đầu ADV-007. Không bắt đầu Disruptor hoặc Kafka trước khi có baseline ghế/hold đúng để so sánh.
+Tiến trình hiện tại: ADV-001–007 đã DONE; review ADV-008, hoàn thành ADV-008A rồi mới bắt đầu ADV-009. Không bắt đầu Disruptor hoặc Kafka trước khi có baseline ghế/hold đúng để so sánh.
 
 Mẫu issue để sao chép:
 
