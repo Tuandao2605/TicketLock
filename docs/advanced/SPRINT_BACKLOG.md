@@ -142,7 +142,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 ### ADV-005 — Event/Show schema và trạng thái publish
 
-**Trạng thái: REVIEW** — [triển khai và điều kiện review độc lập](sprint-02/ADV_005_EVENT_SHOW.md); cần review ADV-005 trước khi tiếp tục review ADV-006.
+**Trạng thái: DONE** — [chi tiết và bằng chứng](sprint-02/ADV_005_EVENT_SHOW.md).
 
 - **P0 · M · Phụ thuộc:** ADV-002.
 - **Quyết định:** Event và Show là hai aggregate; Show dùng DRAFT/PUBLISHED/CANCELLED và thời gian UTC. Publish chỉ thành công khi port kiểm tra layout báo hợp lệ; khóa Show và lưu mốc mở bán trong transaction.
@@ -152,7 +152,7 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 ### ADV-006 — Ghế và trạng thái hiện tại theo show
 
-**Trạng thái: REVIEW (đã triển khai sớm)** · [Chi tiết ADV-006](sprint-02/ADV_006_SEAT_INVENTORY.md) — giữ nguyên code; chỉ review/đóng sau ADV-005 DONE.
+**Trạng thái: DONE** · [Chi tiết ADV-006](sprint-02/ADV_006_SEAT_INVENTORY.md).
 
 - **P0 · L · Phụ thuộc:** ADV-005.
 - **Quyết định:** Lưu layout Seat thuộc Event và một ShowSeat cho mỗi ghế của từng Show; PostgreSQL là nguồn sự thật trạng thái.
@@ -161,6 +161,8 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 - **Nghiệm thu:** ghế trùng trong cùng show và ghế thuộc sai Event bị DB chặn; cùng seat layout có thể dùng bởi hai show độc lập; import rollback toàn bộ khi lỗi, không tạo ghế mồ côi; seed demo chạy lại được. Tích hợp port publish thật: layout rỗng bị từ chối, layout hợp lệ publish được; race import/publish và layout dùng chung không làm đổi show đã mở bán. Chưa cần reservation hay API HTTP.
 
 ### ADV-007 — API quản trị và đọc sơ đồ ghế
+
+**Trạng thái: DONE** — đã tự review · [Chi tiết ADV-007](sprint-02/ADV_007_EVENT_API.md).
 
 - **P0 · M · Phụ thuộc:** ADV-003, ADV-005, ADV-006.
 - **Quyết định:** Tách API quản trị ADMIN và API đọc công khai; chỉ trả show đã publish và snapshot không chứa owner; layout version/snapshot không làm thay đổi Show đã mở bán.
@@ -611,7 +613,7 @@ Redis session vẫn là mặc định cho portal trong mọi phương án mở r
 
 ## 6. Ticket nên bắt đầu ngay
 
-Tiến trình hiện tại: review và đóng **ADV-005**, sau đó review **ADV-006**, rồi bắt đầu ADV-007. ADV-001–004 đã DONE. Không bắt đầu Disruptor hoặc Kafka trước khi có baseline ghế/hold đúng để so sánh.
+Tiến trình hiện tại: ADV-001–006 đã DONE; bắt đầu ADV-007. Không bắt đầu Disruptor hoặc Kafka trước khi có baseline ghế/hold đúng để so sánh.
 
 Mẫu issue để sao chép:
 

@@ -7,4 +7,7 @@ import java.util.UUID;
 public interface ShowSeatLayout {
     void addSeats(UUID showId, UUID eventId, List<UUID> seatIds);
     boolean isReady(UUID showId, UUID eventId);
+    int setPrice(UUID showId, long amount, String currency);
+    List<SeatSnapshot> snapshot(UUID showId);
+    record SeatSnapshot(UUID showSeatId, UUID seatId, String status, Long amount, String currency) { }
 }

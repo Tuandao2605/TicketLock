@@ -1,6 +1,6 @@
 # Sprint 2 — Event, Show và sơ đồ ghế
 
-**Trạng thái:** IN_PROGRESS · [Backlog đầy đủ](../SPRINT_BACKLOG.md)
+**Trạng thái:** IN_PROGRESS — ADV-005/006/007 DONE, ADV-008 IN_PROGRESS · [Backlog đầy đủ](../SPRINT_BACKLOG.md)
 
 Mục tiêu cuối sprint: ADMIN tạo và publish show có layout/giá hợp lệ; khách xem show và snapshot ghế. Không triển khai hold hay booking trong sprint này.
 
@@ -15,8 +15,8 @@ Mục tiêu cuối sprint: ADMIN tạo và publish show có layout/giá hợp l�
 
 ADV-005 và ADV-006 đã được triển khai chồng lấn trước khi áp dụng quy tắc tuần tự. Giữ nguyên V2, V3, code, test, seed và dữ liệu; không sửa lịch sử hay gán DONE tự động. Thứ tự xử lý:
 
-1. Review ADV-005 theo tiêu chí độc lập mới. Kết quả mock chứng minh logic của ticket; bằng chứng layout thật hiện có là bổ sung, không phải dependency ngược. Nếu cần sửa lỗi của ADV-005, sửa và chạy test phù hợp rồi mới đánh dấu DONE.
-2. Khi ADV-005 DONE, review phần ADV-006 đã có và nghiệm thu tích hợp thật. Các thay đổi vượt phạm vi không xóa; ghi rõ trong PR hoặc tách commit khi thích hợp, giữ V2 trước V3. Chỉ đánh dấu DONE khi kiểm thử/tiêu chí ADV-006 đạt.
-3. Sau ADV-006 DONE, bắt đầu ADV-007, bổ sung giá/currency và cập nhật hợp đồng liên quan trước khi mở API. Sau ADV-007 DONE mới bắt đầu ADV-008.
+1. ADV-005 đã tự review và DONE; ADV-006 đã được review tiếp theo, bổ sung test rollback và DONE.
+2. [ADV-007](ADV_007_EVENT_API.md) đã tự review và DONE; bắt đầu ADV-008.
+3. Giữ nguyên V2 và V3; ADV-007 bổ sung V4, không thay checksum migration cũ.
 
 Nếu kiểm thử phát hiện lỗi liên quan nhiều ticket, sửa trong phạm vi an toàn và ghi ticket chịu trách nhiệm; không đổi checksum migration đã áp dụng trên database tồn tại. Không tự baseline hay xóa volume để làm lại migration.

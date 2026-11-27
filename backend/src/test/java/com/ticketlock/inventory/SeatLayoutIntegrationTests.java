@@ -1,5 +1,6 @@
 package com.ticketlock.inventory;
 
+import com.ticketlock.event.api.ShowSeatLayout;
 import com.ticketlock.event.entity.Event;
 import com.ticketlock.event.entity.Show;
 import com.ticketlock.event.entity.ShowStatus;
@@ -51,6 +52,7 @@ class SeatLayoutIntegrationTests {
         assertTrue(firstSeats.stream().allMatch(x -> x.getStatus() == SeatStatus.AVAILABLE && x.getVersion() == 0));
         jdbc.update("UPDATE show_seats SET status='SOLD' WHERE id=?", firstSeats.get(0).getId());
         assertEquals(2, jdbc.queryForObject("SELECT count(*) FROM show_seats WHERE show_id=? AND status='AVAILABLE'", Integer.class, second.getId()));
+        layouts.setUniformPrice(first.getId(), 100000, "VND");
         eventService.publishShow(first.getId());
         assertEquals(ShowStatus.PUBLISHED, first.getStatus());
         assertThrows(IllegalStateException.class, () -> layouts.importSeats(first.getId(), List.of("A3")));
@@ -89,6 +91,33 @@ class SeatLayoutIntegrationTests {
     }
 
     @Test
+    void failedInventoryWriteRollsBackNewSeatDefinitions() {
+        UUID[] ids = transactions.execute(status -> {
+            Event event = events.saveAndFlush(new Event("Rollback", "", Instant.now()));
+            Show show = shows.saveAndFlush(new Show(event.getId(), Instant.now().plusSeconds(3600), "Hall", Instant.now()));
+            return new UUID[]{event.getId(), show.getId()};
+        });
+        try {
+            ShowSeatLayout failing = new ShowSeatLayout() {
+                @Override public void addSeats(UUID showId, UUID eventId, List<UUID> seatIds) { throw new IllegalStateException("fixture failure"); }
+                @Override public boolean isReady(UUID showId, UUID eventId) { return false; }
+                @Override public int setPrice(UUID showId, long amount, String currency) { return 0; }
+                @Override public List<SeatSnapshot> snapshot(UUID showId) { return List.of(); }
+            };
+            SeatLayoutService service = new SeatLayoutService(events, shows, seats, failing);
+            assertThrows(IllegalStateException.class, () -> transactions.executeWithoutResult(status -> service.importSeats(ids[1], List.of("R1", "R2"))));
+            assertTrue(seats.findByEventIdAndLabel(ids[0], "R1").isEmpty());
+            assertTrue(seats.findByEventIdAndLabel(ids[0], "R2").isEmpty());
+            assertEquals(0, showSeats.countByShowId(ids[1]));
+        } finally {
+            transactions.executeWithoutResult(status -> {
+                jdbc.update("DELETE FROM shows WHERE id = ?", ids[1]);
+                jdbc.update("DELETE FROM events WHERE id = ?", ids[0]);
+            });
+        }
+    }
+
+    @Test
     void publishAndImportRaceUsesSameShowLock() throws Exception {
         UUID[] ids = transactions.execute(status -> {
             Event e = events.saveAndFlush(new Event("Race", "", Instant.now()));
@@ -97,20 +126,30 @@ class SeatLayoutIntegrationTests {
         });
         try {
             layouts.importSeats(ids[1], List.of("A1"));
+            layouts.setUniformPrice(ids[1], 100000, "VND");
             var start = new CountDownLatch(1);
             ExecutorService pool = Executors.newFixedThreadPool(2);
             try {
-                Future<?> publish = pool.submit(() -> { await(start); eventService.publishShow(ids[1]); });
+                Future<Boolean> publish = pool.submit(() -> {
+                    await(start);
+                    try { eventService.publishShow(ids[1]); return true; }
+                    catch (IllegalStateException expected) { return false; }
+                });
                 Future<Boolean> append = pool.submit(() -> {
                     await(start);
                     try { layouts.importSeats(ids[1], List.of("A2")); return true; }
                     catch (IllegalStateException expected) { return false; }
                 });
                 start.countDown();
-                publish.get(15, TimeUnit.SECONDS);
+                boolean published = publish.get(15, TimeUnit.SECONDS);
                 boolean appended = append.get(15, TimeUnit.SECONDS);
-                assertEquals(ShowStatus.PUBLISHED, shows.findById(ids[1]).orElseThrow().getStatus());
+                assertNotEquals(published, appended);
+                assertEquals(published ? ShowStatus.PUBLISHED : ShowStatus.DRAFT, shows.findById(ids[1]).orElseThrow().getStatus());
                 assertEquals(appended ? 2 : 1, showSeats.countByShowId(ids[1]));
+                if (!published) {
+                    layouts.setUniformPrice(ids[1], 100000, "VND");
+                    eventService.publishShow(ids[1]);
+                }
                 assertThrows(IllegalStateException.class, () -> layouts.importSeats(ids[1], List.of("A3")));
             } finally { pool.shutdownNow(); }
         } finally {

@@ -37,9 +37,9 @@ class MigrationIntegrationTests {
         String schema = schema();
         try {
             var flyway = flyway(schema, "classpath:db/migration");
-            assertEquals(3, flyway.migrate().migrationsExecuted);
+            assertEquals(4, flyway.migrate().migrationsExecuted);
             assertEquals(0, flyway.migrate().migrationsExecuted);
-            assertEquals(3, flyway.info().applied().length);
+            assertEquals(4, flyway.info().applied().length);
             try (Connection c = dataSource.getConnection(); Statement s = c.createStatement();
                  var rs = s.executeQuery("SELECT count(*) FROM " + schema + ".app_users")) {
                 assertTrue(rs.next());
@@ -60,7 +60,7 @@ class MigrationIntegrationTests {
             }
             var flyway = flyway(schema, "classpath:db/migration");
             flyway.baseline();
-            assertEquals(2, flyway.migrate().migrationsExecuted);
+            assertEquals(3, flyway.migrate().migrationsExecuted);
             try (Connection c = dataSource.getConnection(); Statement s = c.createStatement();
                  var rs = s.executeQuery("SELECT u.id::text,u.password_hash,u.role,u.enabled,r.user_id::text,r.token_hash FROM " + schema + ".app_users u JOIN " + schema + ".refresh_tokens r ON r.user_id=u.id")) {
                 assertTrue(rs.next());

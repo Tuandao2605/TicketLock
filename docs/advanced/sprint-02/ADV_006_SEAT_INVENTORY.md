@@ -1,6 +1,6 @@
 # ADV-006 — Layout ghế và trạng thái ghế theo Show
 
-**Trạng thái:** REVIEW — code đã được triển khai sớm; giữ nguyên và chờ ADV-005 DONE trước khi review/đóng ADV-006.
+**Trạng thái:** DONE — tự review và chạy lại test ngày 27/11/2026 sau ADV-005.
 
 ## Quyết định
 
@@ -13,7 +13,7 @@
 ## Bằng chứng kiểm thử
 
 - Backend test đầy đủ chạy trên PostgreSQL/Redis test riêng sau V3; migration test kiểm tra DB mới và nâng cấp từ V1, bảo toàn dữ liệu user/refresh. Kiểm thử Inventory riêng sau đó cũng xanh.
-- Kiểm tra import lặp, từ chối nhãn trùng, hai show dùng cùng seat ID nhưng show-seat và trạng thái độc lập, DB chặn ghế trùng và ghế thuộc Event khác.
+- Kiểm tra lỗi sau khi tạo Seat rollback toàn bộ, import lặp, từ chối nhãn trùng, hai show dùng cùng seat ID nhưng show-seat và trạng thái độc lập, DB chặn ghế trùng và ghế thuộc Event khác.
 - Kiểm tra publish không có layout bị từ chối, publish có layout thành công, import sau publish bị từ chối và race publish/import kết thúc nhất quán trên PostgreSQL. Đây là một kịch bản đồng thời, không phải benchmark hay bằng chứng bao phủ mọi interleaving.
 - Chạy [seed giả](../../../scripts/seed-seat-demo.sql) hai lần trên DB test đã migrate: lần hai không thêm bản ghi. Chỉ dùng DB test/demo độc lập, không chạy trên DB người dùng.
 

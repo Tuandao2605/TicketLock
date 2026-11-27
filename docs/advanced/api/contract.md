@@ -1,6 +1,6 @@
 # ADV-003 — Hợp đồng API dự kiến M1
 
-**Trạng thái: DRAFT.** [OpenAPI 3.0.3](openapi.yaml) mô tả API dự kiến, không đại diện endpoint đã chạy. Không tạo controller giả. Các quyết định này cần được triển khai và kiểm thử ở ADV-005–ADV-014; API có thể thay đổi sau review.
+**Trạng thái: triển khai một phần.** [OpenAPI 3.0.3](openapi.yaml) mô tả Event/Show đã triển khai ở ADV-007; Reservation/Booking vẫn là draft chưa có endpoint. Hợp đồng có thể thay đổi sau review.
 
 ## Phạm vi và xác thực
 
@@ -21,7 +21,7 @@ Nếu timeout sau khi gửi, client **không suy đoán thất bại**: tra cứ
 
 ## Lỗi và correlation
 
-Mỗi response lỗi mới có `{code, message, traceId}`; `message` an toàn cho người dùng, không chứa credentials, SQL hoặc token. Server tạo traceId cho request và trả `X-Trace-Id` trên response; nếu nhận `X-Request-Id` hợp lệ (1–64 ký tự ASCII chữ/số, dấu `._-`), server có thể ghi như correlation ID riêng, không dùng làm quyền hay tin tùy ý. Không ghi cookie, CSRF, bearer hoặc refresh token vào log. Các endpoint Mini chưa cam kết format này.
+Các response lỗi Event/Show đã triển khai ở ADV-007 và response lỗi dự kiến của API mới có `{code, message, traceId}`; `message` an toàn cho người dùng, không chứa credentials, SQL hoặc token. Server tạo traceId cho request và trả `X-Trace-Id` trên response; nếu nhận `X-Request-Id` hợp lệ (1–64 ký tự ASCII chữ/số, dấu `._-`), server có thể ghi như correlation ID riêng, không dùng làm quyền hay tin tùy ý. Không ghi cookie, CSRF, bearer hoặc refresh token vào log. Các endpoint Mini chưa cam kết format này.
 
 | Status | Ý nghĩa và ví dụ |
 |---|---|
@@ -37,6 +37,12 @@ Các response 429/503 không khẳng định rate limit hay queue đã được 
 
 ## Lưu ý cho ticket tiếp theo
 
-- ADV-005–008 cần chốt cách admin tạo/import layout trước publish; API layout không nằm trong draft này. Show chỉ publish sau khi dữ liệu và layout hợp lệ; layout đã mở bán không thay đổi như ADR.
+- ADV-007 cung cấp API import nhãn và đặt một giá chung cho mọi ghế hiện có của show DRAFT; sau khi thêm ghế cần đặt lại giá trước publish. Giá theo hạng ghế là phần mở rộng sau. Show chỉ publish sau khi dữ liệu, layout và giá hợp lệ. Giá/show đã mở bán không sửa qua API này.
 - ADV-009–012 phải kiểm thử PostgreSQL với hai request tranh ghế, rollback nhóm, deadline, stale command và ownership. Booking độc nhất theo reservation được thực thi ở ADV-013.
 - Đặc tả này chưa mô hình hóa payment, phát vé, realtime, Kafka hay API tách service. Không xem booking PENDING là thanh toán thành công.
+
+## Snapshot và migration giá (ADV-007)
+
+Version snapshot tăng khi import layout hoặc đặt giá qua service; đọc snapshot khóa show trong transaction để quan sát nhất quán với các thao tác này. ADV-009 phải đồng bộ thay đổi trạng thái ghế với phiên bản snapshot trong cùng transaction; ADV-007 chưa cung cấp hold.
+
+V4 để giá ghế cũ NULL, không tự gán giá. Show DRAFT cần cấu hình giá trước publish. Nếu một show đã PUBLISHED trước khi nâng cấp mà thiếu giá, snapshot trả 409; API không sửa giá sau mở bán. Cần đối chiếu và xử lý dữ liệu cũ theo migration/runbook có chủ đích trước khi công khai, không tự suy đoán giá.

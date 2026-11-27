@@ -1,6 +1,6 @@
 # ADV-005 — Event, Show và trạng thái publish
 
-**Trạng thái:** REVIEW — nghiệm thu phạm vi Event/Show độc lập; kiểm thử reservation và layout thật thuộc ticket sau.
+**Trạng thái:** DONE — đã tự review và chạy lại test Event/migration ngày 27/11/2026. Reservation thuộc ADV-009.
 
 ## Quyết định và phạm vi
 

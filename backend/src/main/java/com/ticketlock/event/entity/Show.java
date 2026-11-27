@@ -20,6 +20,8 @@ public class Show {
     private ShowStatus status;
     @Column(name = "sales_opened_at")
     private Instant salesOpenedAt;
+    @Column(name = "seat_map_version", nullable = false)
+    private long seatMapVersion;
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -59,5 +61,7 @@ public class Show {
     public String getVenue() { return venue; }
     public ShowStatus getStatus() { return status; }
     public Instant getSalesOpenedAt() { return salesOpenedAt; }
+    public long getSeatMapVersion() { return seatMapVersion; }
+    public void markSeatMapChanged() { seatMapVersion = Math.addExact(seatMapVersion, 1); }
     public boolean isLayoutLocked() { return salesOpenedAt != null; }
 }

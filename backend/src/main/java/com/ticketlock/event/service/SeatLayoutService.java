@@ -42,5 +42,16 @@ public class SeatLayoutService {
         List<UUID> seatIds = clean.stream().map(label -> seats.findByEventIdAndLabel(eventId, label)
                 .orElseGet(() -> seats.saveAndFlush(new Seat(eventId, label))).getId()).toList();
         inventory.addSeats(showId, eventId, seatIds);
+        show.markSeatMapChanged();
+    }
+    @Transactional
+    public void setUniformPrice(UUID showId, long amount, String currency) {
+        if (amount < 0 || currency == null || !currency.matches("[A-Z]{3}"))
+            throw new IllegalArgumentException("Giá hoặc currency không hợp lệ");
+        Show show = shows.findForUpdate(showId).orElseThrow(() -> new NoSuchElementException("Không tìm thấy show"));
+        if (show.getStatus() != ShowStatus.DRAFT || show.isLayoutLocked())
+            throw new IllegalStateException("Không thể đổi giá show đã mở bán");
+        inventory.setPrice(showId, amount, currency);
+        show.markSeatMapChanged();
     }
 }

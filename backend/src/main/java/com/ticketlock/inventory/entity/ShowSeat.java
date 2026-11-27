@@ -16,6 +16,8 @@ public class ShowSeat {
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20) private SeatStatus status;
     @Column(name = "reservation_id") private UUID reservationId;
     @Column(name = "hold_expires_at") private Instant holdExpiresAt;
+    @Column(name = "price_amount") private Long priceAmount;
+    @Column(length = 3) private String currency;
     @Version @Column(nullable = false) private long version;
     protected ShowSeat() { }
     public ShowSeat(UUID showId, UUID seatId, UUID eventId) {
@@ -26,5 +28,8 @@ public class ShowSeat {
     public UUID getShowId() { return showId; }
     public UUID getSeatId() { return seatId; }
     public SeatStatus getStatus() { return status; }
+    public Long getPriceAmount() { return priceAmount; }
+    public String getCurrency() { return currency; }
+    public void setPrice(long amount, String currency) { this.priceAmount = amount; this.currency = currency; }
     public long getVersion() { return version; }
 }

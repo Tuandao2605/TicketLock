@@ -7,6 +7,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.web.csrf.CsrfFilter;
+import com.ticketlock.security.ApiTraceFilter;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -71,7 +74,16 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
             SecurityContextRepository contexts, CsrfTokenRepository csrfTokens,
             SessionRegistry registry) throws Exception {
+        var denied = (org.springframework.security.web.access.AccessDeniedHandler) (request, response, exception) -> {
+            if (request.getRequestURI().startsWith("/api/v1/")) {
+                response.setStatus(403);
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{\"code\":\"FORBIDDEN\",\"message\":\"Không có quyền thực hiện thao tác.\",\"traceId\":\"" + request.getAttribute("ticketlock.traceId") + "\"}");
+            } else response.sendError(403);
+        };
         http
+                .addFilterBefore(new ApiTraceFilter(), CsrfFilter.class)
                 .securityContext(context -> context.securityContextRepository(contexts))
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(csrfTokens)
@@ -87,12 +99,20 @@ public class SecurityConfig {
                                     "{\"message\":\"Phiên đã kết thúc do tài khoản đăng nhập ở nơi khác.\"}");
                         }))
                 .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers(HttpMethod.GET, "/api/v1/events", "/api/v1/events/*", "/api/v1/events/*/shows", "/api/v1/shows/*", "/api/v1/shows/*/seats").permitAll()
                         .requestMatchers("/lab/**", "/public/**", "/api/auth/register", "/api/auth/csrf", "/api/auth/login").permitAll()
                         .requestMatchers("/blocked").denyAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
+                        .accessDeniedHandler(denied)
+                        .defaultAuthenticationEntryPointFor((request, response, exception) -> {
+                            response.setStatus(401);
+                            response.setContentType("application/json");
+                            response.setCharacterEncoding("UTF-8");
+                            response.getWriter().write("{\"code\":\"UNAUTHENTICATED\",\"message\":\"Vui lòng đăng nhập.\",\"traceId\":\"" + request.getAttribute("ticketlock.traceId") + "\"}");
+                        }, request -> request.getRequestURI().startsWith("/api/v1/"))
                         .defaultAuthenticationEntryPointFor(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
                                 request -> true))
