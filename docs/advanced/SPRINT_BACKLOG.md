@@ -197,6 +197,8 @@ Chi tiết các bước, checklist và nghiệm thu: [Sprint 1 chi tiết](sprin
 
 ### ADV-009 — Hold nhóm ghế bằng transaction PostgreSQL
 
+**Trạng thái: DONE** — [review và kiểm thử](sprint-03/ADV_009_RESERVATION.md) ngày 28/11/2026; thực hiện theo yêu cầu người dùng khi ADV-008/008A còn REVIEW.
+
 - **P0 · L · Phụ thuộc:** ADV-006, ADV-007, ADV-008A.
 - **Quyết định:** Dùng transaction PostgreSQL và khóa ShowSeat theo thứ tự ID tăng dần; mặc định hold 10 phút, giới hạn nhóm bằng cấu hình.
 - **Phạm vi:** tạo reservation gắn showId và giữ 1..N ghế trong 10 phút qua service nội bộ; owner là UUID do caller tin cậy truyền sau xác thực. Khóa hàng theo thứ tự ổn định hoặc conditional update tương đương; lưu snapshot giá/currency đã cấu hình tại ADV-007 trong cùng transaction; không gọi provider trong transaction. Chưa công khai endpoint giữ ghế khi idempotency/authorization ADV-011–012 chưa hoàn tất.
@@ -625,7 +627,7 @@ Redis session vẫn là mặc định cho portal trong mọi phương án mở r
 
 ## 6. Ticket nên bắt đầu ngay
 
-Tiến trình hiện tại: ADV-001–007 đã DONE; review ADV-008, hoàn thành ADV-008A rồi mới bắt đầu ADV-009. Không bắt đầu Disruptor hoặc Kafka trước khi có baseline ghế/hold đúng để so sánh.
+Tiến trình hiện tại: ADV-001–007 và ADV-009 đã DONE; ADV-008 và ADV-008A vẫn cần review theo thứ tự. ADV-009 được thực hiện và đóng theo yêu cầu người dùng khi ADV-008A còn REVIEW. Không bắt đầu Disruptor hoặc Kafka trước khi có baseline ghế/hold đúng để so sánh.
 
 Mẫu issue để sao chép:
 
